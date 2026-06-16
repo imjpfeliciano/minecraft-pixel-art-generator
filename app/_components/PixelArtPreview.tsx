@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { track } from "@vercel/analytics";
 import type { MinecraftBlock } from "../_lib/blocks";
 
 interface Props {
@@ -213,7 +214,7 @@ export default function PixelArtPreview({
 
         {/* Grid toggle */}
         <button
-          onClick={() => onShowGridChange(!showGrid)}
+          onClick={() => { track("Grid Toggled", { enabled: !showGrid }); onShowGridChange(!showGrid); }}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
             showGrid
               ? "border-green-600 bg-green-600/15 text-green-400"
@@ -240,7 +241,7 @@ export default function PixelArtPreview({
 
         {/* Overlay toggle */}
         <button
-          onClick={() => onShowOriginalOverlayChange(!showOriginalOverlay)}
+          onClick={() => { track("Overlay Toggled", { enabled: !showOriginalOverlay }); onShowOriginalOverlayChange(!showOriginalOverlay); }}
           disabled={!originalImageUrl}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
             showOriginalOverlay

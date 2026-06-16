@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@vercel/analytics";
 import type { MinecraftBlock } from "../_lib/blocks";
 
 interface Props {
@@ -39,6 +40,7 @@ export default function BlockLegend({ blockGrid }: Props) {
     a.download = "material-list.csv";
     a.click();
     URL.revokeObjectURL(url);
+    track("CSV Exported", { unique_blocks: sorted.length, total_blocks: total });
   };
 
   return (

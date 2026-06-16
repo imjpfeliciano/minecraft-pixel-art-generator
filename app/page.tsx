@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { track } from "@vercel/analytics";
 import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
 import PixelArtPreview from "./_components/PixelArtPreview";
@@ -167,8 +168,19 @@ export default function Home() {
         foundationEnabled ? { blockId: foundationBlockId } : undefined
       );
       setLastLitematic(litematic);
+
+      track("Pixel Art Generated", {
+        width,
+        height,
+        orientation,
+        categories_count: selectedCategories.size,
+        has_fill_block: !!fillBlockId,
+        foundation_enabled: foundationEnabled,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      track("Generation Failed", { error_message: message });
     } finally {
       setIsProcessing(false);
     }
@@ -177,7 +189,12 @@ export default function Home() {
   const handleDownload = useCallback(() => {
     if (!lastLitematic) return;
     downloadLitematic(lastLitematic, `${schematicName}.litematic`);
-  }, [lastLitematic, schematicName]);
+    track("Litematic Downloaded", {
+      width,
+      height,
+      orientation,
+    });
+  }, [lastLitematic, schematicName, width, height, orientation]);
 
   // ── Step tracker state ──────────────────────────────────────────────────────
   const steps: Step[] = [
@@ -373,7 +390,10 @@ export default function Home() {
                     {/* Material list toggle — pushed to the right */}
                     {blockGrid.length > 0 && (
                       <button
-                        onClick={() => setShowMaterialList((v) => !v)}
+                        onClick={() => setShowMaterialList((v) => {
+                          if (!v) track("Materials Panel Opened");
+                          return !v;
+                        })}
                         className={`ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
                           showMaterialList
                             ? "border-zinc-500 bg-zinc-800 text-zinc-200"

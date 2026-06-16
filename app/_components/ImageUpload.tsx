@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { track } from "@vercel/analytics";
 
 interface Props {
   onImageSelected: (file: File, previewUrl: string) => void;
@@ -22,7 +23,10 @@ export default function ImageUpload({ onImageSelected }: Props) {
       e.preventDefault();
       setDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (file) {
+        track("Image Uploaded", { method: "drag_drop", file_type: file.type });
+        handleFile(file);
+      }
     },
     [handleFile]
   );
@@ -36,7 +40,10 @@ export default function ImageUpload({ onImageSelected }: Props) {
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) {
+      track("Image Uploaded", { method: "file_browser", file_type: file.type });
+      handleFile(file);
+    }
     e.target.value = "";
   };
 
