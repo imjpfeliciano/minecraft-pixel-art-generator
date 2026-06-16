@@ -100,6 +100,10 @@ export default function Home() {
   // Background fill
   const [fillBlockId, setFillBlockId] = useState("");
 
+  // Foundation layer
+  const [foundationEnabled, setFoundationEnabled] = useState(false);
+  const [foundationBlockId, setFoundationBlockId] = useState("minecraft:stone");
+
   // Result view tools
   const [showGrid, setShowGrid] = useState(false);
   const [gridColor, setGridColor] = useState("#ffffff");
@@ -156,14 +160,19 @@ export default function Home() {
       const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks, fillBlock);
       setBlockGrid(grid);
 
-      const litematic = generateLitematic(grid, orientation, schematicName);
+      const litematic = generateLitematic(
+        grid,
+        orientation,
+        schematicName,
+        foundationEnabled ? { blockId: foundationBlockId } : undefined
+      );
       setLastLitematic(litematic);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsProcessing(false);
     }
-  }, [imageFile, width, height, orientation, selectedCategories, schematicName, fillBlockId]);
+  }, [imageFile, width, height, orientation, selectedCategories, schematicName, fillBlockId, foundationEnabled, foundationBlockId]);
 
   const handleDownload = useCallback(() => {
     if (!lastLitematic) return;
@@ -303,6 +312,35 @@ export default function Home() {
                 <option value="minecraft:oak_planks">Oak Planks</option>
               </optgroup>
             </select>
+          </section>
+
+          {/* Foundation layer */}
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+              Foundation Layer
+            </h2>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={foundationEnabled}
+                onChange={(e) => setFoundationEnabled(e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 accent-green-500 cursor-pointer"
+              />
+              <span className="text-sm text-zinc-300">Add foundation layer</span>
+            </label>
+            {foundationEnabled && (
+              <select
+                value={foundationBlockId}
+                onChange={(e) => setFoundationBlockId(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+              >
+                <option value="minecraft:stone">Stone</option>
+                <option value="minecraft:smooth_stone">Smooth Stone</option>
+                <option value="minecraft:deepslate">Deepslate</option>
+                <option value="minecraft:obsidian">Obsidian</option>
+                <option value="minecraft:oak_planks">Oak Planks</option>
+              </select>
+            )}
           </section>
 
           {error && (

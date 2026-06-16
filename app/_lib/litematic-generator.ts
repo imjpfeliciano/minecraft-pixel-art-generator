@@ -52,6 +52,12 @@ import {
 /** Whether the pixel art lies flat on the ground (XZ) or stands upright on a wall (XY). */
 export type Orientation = "horizontal" | "vertical";
 
+/** Optional solid foundation layer placed below/behind the pixel art. */
+export interface Foundation {
+  /** Block ID of the foundation layer (e.g. `"minecraft:stone"`). */
+  blockId: string;
+}
+
 /**
  * Generate a `.litematic` file from a 2D block grid.
  *
@@ -61,13 +67,15 @@ export type Orientation = "horizontal" | "vertical";
  * @param blockGrid   - Row-major grid produced by `mapPixelsToBlocks`
  * @param orientation - `"vertical"` for wall art (XY plane) or `"horizontal"` for floor art (XZ plane)
  * @param name        - Schematic name shown in the Litematica UI (default: `"PixelArt"`)
+ * @param foundation  - When provided, adds an extra solid layer under/behind the art so gravity blocks don't fall
  * @returns GZip-compressed NBT as a `Uint8Array`, ready for writing to a `.litematic` file
  * @throws If `blockGrid` is empty
  */
 export function generateLitematic(
   blockGrid: MinecraftBlock[][],
   orientation: Orientation,
-  name: string = "PixelArt"
+  name: string = "PixelArt",
+  foundation?: Foundation
 ): Uint8Array {
   const rows = blockGrid.length;       // image height (pixels)
   const cols = blockGrid[0]?.length ?? 0; // image width (pixels)
@@ -101,16 +109,32 @@ export function generateLitematic(
 
   if (orientation === "horizontal") {
     sizeX = cols;
-    sizeY = 1;
+    // Y=0 foundation (optional) + Y=1 pixel art when foundation enabled
+    sizeY = foundation ? 2 : 1;
     sizeZ = rows;
   } else {
     sizeX = cols;
     sizeY = rows;
-    sizeZ = 1;
+    // Z=0 pixel art + Z=1 foundation (optional) when foundation enabled
+    sizeZ = foundation ? 2 : 1;
   }
 
   const totalBlocks = sizeX * sizeY * sizeZ;
   const blockIndices = new Int32Array(totalBlocks);
+
+  // Resolve the foundation palette index once (if needed)
+  let foundationIdx = 0;
+  if (foundation) {
+    const id = foundation.blockId;
+    const label = id.replace(/^minecraft:/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const foundationBlock: MinecraftBlock = {
+      id,
+      name: label,
+      rgb: [128, 128, 128],
+      category: "Foundation",
+    };
+    foundationIdx = ensurePalette(foundationBlock);
+  }
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -119,15 +143,34 @@ export function generateLitematic(
 
       let linearIdx: number;
       if (orientation === "horizontal") {
-        // y=0, z=row, x=col
-        linearIdx = 0 * sizeX * sizeZ + row * sizeX + col;
+        // Pixel art sits at Y=1 when foundation present, otherwise Y=0
+        const artY = foundation ? 1 : 0;
+        linearIdx = artY * sizeX * sizeZ + row * sizeX + col;
       } else {
-        // y=row (inverted so row=0 is top → y=rows-1), z=0, x=col
+        // y=row (inverted so row=0 is top → y=rows-1), z=0
         const y = rows - 1 - row;
         linearIdx = y * sizeX * sizeZ + 0 * sizeX + col;
       }
 
       blockIndices[linearIdx] = idx;
+    }
+  }
+
+  // Fill the foundation layer
+  if (foundation) {
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        let linearIdx: number;
+        if (orientation === "horizontal") {
+          // Foundation at Y=0, z=row, x=col
+          linearIdx = 0 * sizeX * sizeZ + row * sizeX + col;
+        } else {
+          // Foundation at Z=1, y=rows-1-row, x=col
+          const y = rows - 1 - row;
+          linearIdx = y * sizeX * sizeZ + 1 * sizeX + col;
+        }
+        blockIndices[linearIdx] = foundationIdx;
+      }
     }
   }
 
