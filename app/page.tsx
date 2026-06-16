@@ -97,6 +97,15 @@ export default function Home() {
   const [lastLitematic, setLastLitematic] = useState<Uint8Array | null>(null);
   const [schematicName, setSchematicName] = useState("PixelArt");
 
+  // Background fill
+  const [fillBlockId, setFillBlockId] = useState("");
+
+  // Result view tools
+  const [showGrid, setShowGrid] = useState(false);
+  const [gridColor, setGridColor] = useState("#ffffff");
+  const [showOriginalOverlay, setShowOriginalOverlay] = useState(false);
+  const [showMaterialList, setShowMaterialList] = useState(false);
+
   // Revoke the final blob URL when the page unmounts (empty deps = runs once).
   useEffect(() => {
     return () => {
@@ -141,7 +150,10 @@ export default function Home() {
       }
 
       const { pixels } = await loadAndResizeImage(imageFile, width, height);
-      const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks);
+      const fillBlock = fillBlockId
+        ? MINECRAFT_BLOCKS.find((b) => b.id === fillBlockId)
+        : undefined;
+      const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks, fillBlock);
       setBlockGrid(grid);
 
       const litematic = generateLitematic(grid, orientation, schematicName);
@@ -151,7 +163,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  }, [imageFile, width, height, orientation, selectedCategories, schematicName]);
+  }, [imageFile, width, height, orientation, selectedCategories, schematicName, fillBlockId]);
 
   const handleDownload = useCallback(() => {
     if (!lastLitematic) return;
@@ -262,6 +274,37 @@ export default function Home() {
             />
           </section>
 
+          {/* Background fill */}
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+              Background Fill
+            </h2>
+            <select
+              value={fillBlockId}
+              onChange={(e) => setFillBlockId(e.target.value)}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+            >
+              <option value="">(none / air)</option>
+              <optgroup label="White">
+                <option value="minecraft:white_concrete">White Concrete</option>
+                <option value="minecraft:quartz_block">Quartz Block</option>
+                <option value="minecraft:snow_block">Snow Block</option>
+              </optgroup>
+              <optgroup label="Black">
+                <option value="minecraft:black_concrete">Black Concrete</option>
+                <option value="minecraft:obsidian">Obsidian</option>
+              </optgroup>
+              <optgroup label="Gray">
+                <option value="minecraft:gray_concrete">Gray Concrete</option>
+                <option value="minecraft:smooth_stone">Smooth Stone</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="minecraft:stone">Stone</option>
+                <option value="minecraft:oak_planks">Oak Planks</option>
+              </optgroup>
+            </select>
+          </section>
+
           {error && (
             <div className="rounded-xl border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
               {error}
@@ -272,100 +315,151 @@ export default function Home() {
         {/* ── Main ──────────────────────────────────────────────────────────── */}
         <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-          {/* ── Two panels ──────────────────────────────────────────────────── */}
-          <div className="flex flex-1 overflow-hidden gap-px bg-zinc-800 min-h-0">
+          {isProcessing || blockGrid.length > 0 ? (
+            /* ── Result view ────────────────────────────────────────────────── */
+            <>
+              <div className="flex flex-1 overflow-hidden min-h-0">
 
-            {/* Original image panel */}
-            <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
-              {/* Panel header */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
-                  Original
-                </span>
-                {imageFile && (
-                  <span className="text-xs text-zinc-600 truncate">
-                    {imageFile.name}
-                  </span>
-                )}
-              </div>
+                {/* Preview panel */}
+                <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
+                  {/* Panel header */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                      Pixel Art
+                    </span>
+                    {blockGrid.length > 0 && (
+                      <span className="text-xs text-zinc-600">
+                        {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
+                      </span>
+                    )}
+                    {/* Material list toggle — pushed to the right */}
+                    {blockGrid.length > 0 && (
+                      <button
+                        onClick={() => setShowMaterialList((v) => !v)}
+                        className={`ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          showMaterialList
+                            ? "border-zinc-500 bg-zinc-800 text-zinc-200"
+                            : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+                        }`}
+                        title={showMaterialList ? "Hide material list" : "Show material list"}
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <line x1="3" y1="4" x2="13" y2="4" />
+                          <line x1="3" y1="8" x2="13" y2="8" />
+                          <line x1="3" y1="12" x2="10" y2="12" />
+                        </svg>
+                        Materials
+                        <svg
+                          className={`w-3 h-3 transition-transform ${showMaterialList ? "rotate-180" : ""}`}
+                          viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
+                        >
+                          <path d="M2 4l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
 
-              {/* Panel body */}
-              <div className="flex-1 overflow-hidden flex items-center justify-center p-4 min-h-0">
-                {imagePreviewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imagePreviewUrl}
-                    alt="Original image"
-                    className="max-w-full max-h-full object-contain rounded-lg"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                          d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M12 3v.01" />
-                      </svg>
+                  {/* Panel body */}
+                  <div className="flex-1 overflow-hidden p-4 min-h-0">
+                    <PixelArtPreview
+                      blockGrid={blockGrid}
+                      isLoading={isProcessing}
+                      showGrid={showGrid}
+                      onShowGridChange={setShowGrid}
+                      gridColor={gridColor}
+                      onGridColorChange={setGridColor}
+                      showOriginalOverlay={showOriginalOverlay}
+                      onShowOriginalOverlayChange={setShowOriginalOverlay}
+                      originalImageUrl={imagePreviewUrl}
+                    />
+                  </div>
+                </div>
+
+                {/* Material list side panel */}
+                {showMaterialList && blockGrid.length > 0 && (
+                  <div className="w-72 flex-shrink-0 flex flex-col border-l border-zinc-800 bg-zinc-950 overflow-hidden">
+                    {/* Side panel header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                        Materials
+                      </span>
+                      <button
+                        onClick={() => setShowMaterialList(false)}
+                        className="text-zinc-600 hover:text-zinc-300 transition-colors"
+                        title="Close"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" />
+                        </svg>
+                      </button>
                     </div>
-                    <p className="text-zinc-600 text-sm">Upload an image to begin</p>
+
+                    {/* Scrollable list */}
+                    <div className="flex-1 overflow-y-auto min-h-0">
+                      <BlockLegend blockGrid={blockGrid} />
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Generated pixel art panel */}
-            <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
-              {/* Panel header */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
-                  Pixel Art
-                </span>
-                {blockGrid.length > 0 && (
-                  <span className="text-xs text-zinc-600">
-                    {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
+              {/* ── Download bar ─────────────────────────────────────────────── */}
+              {blockGrid.length > 0 && (
+                <div className="flex-shrink-0 border-t border-zinc-800 px-4 py-3 flex items-center gap-3">
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-500 active:scale-95 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download .litematic
+                  </button>
+                  <div className="text-xs text-zinc-500">
+                    <p>Import via <span className="text-zinc-300 font-medium">Litematica mod</span></p>
+                    <p>in Minecraft → Load Schematics</p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* ── Pre-generation view: two panels ───────────────────────────── */
+            <div className="flex flex-1 overflow-hidden gap-px bg-zinc-800 min-h-0">
+
+              {/* Original image panel — full width before generation */}
+              <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                    Original
                   </span>
-                )}
-              </div>
+                  {imageFile && (
+                    <span className="text-xs text-zinc-600 truncate">
+                      {imageFile.name}
+                    </span>
+                  )}
+                </div>
 
-              {/* Panel body */}
-              <div className="flex-1 overflow-hidden p-4 min-h-0">
-                {isProcessing || blockGrid.length > 0 ? (
-                  <PixelArtPreview blockGrid={blockGrid} isLoading={isProcessing} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-zinc-600 text-sm text-center">
-                      {imageFile
-                        ? "Configure settings and click Generate"
-                        : "Upload an image first"}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Download bar + block legend ────────────────────────────────── */}
-          {blockGrid.length > 0 && (
-            <div className="flex-shrink-0 border-t border-zinc-800 p-4 flex flex-col gap-4">
-              {/* Download button */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-500 active:scale-95 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download .litematic
-                </button>
-                <div className="text-xs text-zinc-500">
-                  <p>Import via <span className="text-zinc-300 font-medium">Litematica mod</span></p>
-                  <p>in Minecraft → Load Schematics</p>
+                <div className="flex-1 overflow-hidden flex items-center justify-center p-4 min-h-0">
+                  {imagePreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Original image"
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M12 3v.01" />
+                        </svg>
+                      </div>
+                      <p className="text-zinc-600 text-sm">Upload an image to begin</p>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Block legend */}
-              <BlockLegend blockGrid={blockGrid} />
             </div>
           )}
         </main>

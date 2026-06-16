@@ -111,7 +111,10 @@ class NbtWriter {
 
   writeLong(v: bigint) {
     const dv = this.alloc(8);
-    dv.setBigInt64(0, v, false);
+    // Mask to 64 bits and write as unsigned big-endian so that values with
+    // bit 63 set (from BigUint64Array) are stored with the correct bit pattern
+    // without relying on signed-overflow behaviour of setBigInt64.
+    dv.setBigUint64(0, BigInt.asUintN(64, v), false);
   }
 
   writeFloat(v: number) {

@@ -116,21 +116,25 @@ export function findNearestBlock(
  * Build a row-major grid of `MinecraftBlock` values from a raw RGBA pixel buffer,
  * matching each pixel to the nearest allowed block.
  *
- * Pixels with alpha < 128 are mapped to `minecraft:air` and will be treated as
- * empty space in the generated schematic.
+ * Pixels with alpha < 128 are mapped to `fillBlock` when provided, or to
+ * `minecraft:air` (empty space) by default.
  *
  * @param pixels - RGBA `Uint8ClampedArray` as returned by `CanvasRenderingContext2D.getImageData`
  * @param width  - Number of columns (pixels per row)
  * @param height - Number of rows
  * @param allowedBlocks - Palette to use for matching; defaults to `MINECRAFT_BLOCKS`
+ * @param fillBlock - Optional block to use for transparent pixels instead of air
  * @returns Row-major grid: `result[row][col]` is the matched block
  */
 export function mapPixelsToBlocks(
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  allowedBlocks: MinecraftBlock[] = MINECRAFT_BLOCKS
+  allowedBlocks: MinecraftBlock[] = MINECRAFT_BLOCKS,
+  fillBlock?: MinecraftBlock
 ): MinecraftBlock[][] {
+  const air: MinecraftBlock = { id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air" };
+  const transparentBlock = fillBlock ?? air;
   const result: MinecraftBlock[][] = [];
 
   for (let row = 0; row < height; row++) {
@@ -142,9 +146,8 @@ export function mapPixelsToBlocks(
       const b = pixels[idx + 2];
       const a = pixels[idx + 3];
 
-      // Treat transparent pixels as air (null placeholder)
       if (a < 128) {
-        rowBlocks.push({ id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air" });
+        rowBlocks.push(transparentBlock);
       } else {
         rowBlocks.push(findNearestBlock(r, g, b, allowedBlocks));
       }

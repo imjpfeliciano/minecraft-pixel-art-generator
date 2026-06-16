@@ -24,12 +24,13 @@
  *
  * ### Block state bit-packing
  *
- * Palette indices are packed into a `BigInt64Array`. Unlike vanilla chunks,
- * Litematica does **not** allow indices to span long boundaries:
+ * Litematica's `LitematicaBitArray` uses **spanning** bit-packing: palette
+ * indices are laid out as a contiguous bit stream, and a single index may
+ * straddle the boundary between two consecutive 64-bit longs (unlike the
+ * Minecraft 1.16+ chunk format which wastes trailing bits per long):
  * ```
- * bitsPerBlock  = max(2, ceil(log2(paletteSize)))
- * blocksPerLong = floor(64 / bitsPerBlock)
- * longArraySize = ceil(totalBlocks / blocksPerLong)
+ * bitsPerBlock = max(2, ceil(log2(paletteSize)))
+ * longCount    = ceil(totalBlocks * bitsPerBlock / 64)
  * ```
  * `minecraft:air` is always palette index 0.
  */
@@ -130,22 +131,52 @@ export function generateLitematic(
     }
   }
 
-  // Pack block indices into long array
+  // Pack block indices into long array using Litematica's spanning bit-packing.
+  //
+  // Unlike Minecraft's post-1.16 chunk format (no-spanning, wastes bits at the
+  // end of each long), Litematica's LitematicaBitArray allows block indices to
+  // span across consecutive longs, leaving unused bits only at the very end of
+  // the final long. This matches litemapy's LitematicaBitArray implementation.
+  //
+  // longCount = ceil(totalBlocks * bitsPerBlock / 64)
+  //
+  // Block i occupies bits [i*bpp .. i*bpp + bpp - 1] in the flat bit stream,
+  // which may span the boundary between longs floor(i*bpp/64) and floor((i*bpp+bpp-1)/64).
   const paletteSize = paletteList.length;
-  const bitsPerBlock = Math.max(2, Math.ceil(Math.log2(paletteSize || 1)));
-  const blocksPerLong = Math.floor(64 / bitsPerBlock);
-  const longCount = Math.ceil(totalBlocks / blocksPerLong);
-  const packedLongs = new BigInt64Array(longCount);
+
+  // bitsPerBlock = max(2, ceil(log2(paletteSize))) — minimum 2, same as Litematica.
+  let bitsPerBlock = 1;
+  let bitsCheck = paletteSize - 1;
+  while (bitsCheck > 1) { bitsCheck >>= 1; bitsPerBlock++; }
+  bitsPerBlock = Math.max(2, bitsPerBlock);
+
+  const longCount = Math.ceil((totalBlocks * bitsPerBlock) / 64);
+  const packedLongs = new BigUint64Array(longCount);
 
   for (let i = 0; i < totalBlocks; i++) {
-    const longIdx = Math.floor(i / blocksPerLong);
-    const bitOffset = (i % blocksPerLong) * bitsPerBlock;
-    packedLongs[longIdx] |= BigInt(blockIndices[i]) << BigInt(bitOffset);
+    const value = BigInt(blockIndices[i]);
+    const startOffset = i * bitsPerBlock;
+    const startLongIdx = Math.floor(startOffset / 64);
+    const startBitOffset = BigInt(startOffset & 63); // startOffset % 64
+    const endLongIdx = Math.floor((startOffset + bitsPerBlock - 1) / 64);
+
+    // Write bits into startLong. BigUint64Array auto-truncates overflow to 64 bits,
+    // so high-order bits that belong to endLong are safely discarded here.
+    packedLongs[startLongIdx] |= value << startBitOffset;
+
+    if (startLongIdx !== endLongIdx) {
+      // Block index spans two longs — write the remaining high bits to the next long.
+      const bitsInFirst = 64n - startBitOffset;
+      packedLongs[endLongIdx] |= value >> bitsInFirst;
+    }
   }
 
-  // Build palette NBT list
+  // Build palette NBT list.
+  // Every entry must have both Name and Properties so that Litematica (all
+  // recent versions) resolves the block state unambiguously. An empty
+  // Properties compound is valid and signals "use all default values".
   const paletteTags: NbtValue[] = paletteList.map((block) =>
-    nbtCompound({ Name: nbtString(block.id) })
+    nbtCompound({ Name: nbtString(block.id), Properties: nbtCompound({}) })
   );
 
   // Count non-air blocks
@@ -206,7 +237,7 @@ export function generateLitematic(
  * @param filename - Download filename (default: `"pixel-art.litematic"`)
  */
 export function downloadLitematic(data: Uint8Array, filename: string = "pixel-art.litematic") {
-  const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/octet-stream" });
+  const blob = new Blob([data], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
