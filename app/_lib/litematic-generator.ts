@@ -237,7 +237,7 @@ export function generateLitematic(
  * @param filename - Download filename (default: `"pixel-art.litematic"`)
  */
 export function downloadLitematic(data: Uint8Array, filename: string = "pixel-art.litematic") {
-  const blob = new Blob([data], { type: "application/octet-stream" });
+  const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

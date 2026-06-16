@@ -56,7 +56,7 @@ export type NbtValue =
   | { type: typeof TAG.LIST; elementType: TagType; value: NbtValue[] }
   | { type: typeof TAG.COMPOUND; value: Record<string, NbtValue> }
   | { type: typeof TAG.INT_ARRAY; value: Int32Array }
-  | { type: typeof TAG.LONG_ARRAY; value: BigInt64Array };
+  | { type: typeof TAG.LONG_ARRAY; value: BigInt64Array | BigUint64Array };
 
 // --- Helpers ---
 export const nbtByte = (v: number): NbtValue => ({ type: TAG.BYTE, value: v });
@@ -65,7 +65,7 @@ export const nbtInt = (v: number): NbtValue => ({ type: TAG.INT, value: v });
 export const nbtLong = (v: bigint): NbtValue => ({ type: TAG.LONG, value: v });
 export const nbtString = (v: string): NbtValue => ({ type: TAG.STRING, value: v });
 export const nbtIntArray = (v: Int32Array): NbtValue => ({ type: TAG.INT_ARRAY, value: v });
-export const nbtLongArray = (v: BigInt64Array): NbtValue => ({ type: TAG.LONG_ARRAY, value: v });
+export const nbtLongArray = (v: BigInt64Array | BigUint64Array): NbtValue => ({ type: TAG.LONG_ARRAY, value: v });
 export const nbtCompound = (v: Record<string, NbtValue>): NbtValue => ({
   type: TAG.COMPOUND,
   value: v,
