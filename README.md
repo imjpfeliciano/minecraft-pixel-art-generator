@@ -71,13 +71,17 @@ minecraft-pixel-art-generator/
 │   │   ├── nbt.ts                    # Binary NBT encoder
 │   │   └── litematic-generator.ts    # .litematic file builder + browser download
 │   ├── _components/                  # React UI components
-│   │   ├── ImageUpload.tsx           # Drag-and-drop file picker
-│   │   ├── ControlPanel.tsx          # Dimensions, orientation, category filters
-│   │   ├── PixelArtPreview.tsx       # Zoomable canvas preview with tooltips
+│   │   ├── ImageUpload.tsx           # Drag-and-drop / click-to-browse file picker (label wrapper)
+│   │   ├── ControlPanel.tsx          # Dimensions, orientation, category filters, generate CTA
+│   │   ├── PixelArtPreview.tsx       # Zoomable canvas preview with tooltips and loading skeleton
 │   │   └── BlockLegend.tsx           # Sorted block inventory list
-│   ├── page.tsx                      # Main page — orchestrates the full workflow
+│   ├── page.tsx                      # Main page — step tracker, side-by-side panels, download bar
 │   ├── layout.tsx                    # Root layout, metadata, Geist font
 │   └── globals.css                   # Tailwind base + global overrides
+├── docs/
+│   └── features/
+│       └── step-by-step-ux.md        # Feature spec: step-by-step UX and output format selection
+├── next.config.ts                    # Next.js config (allowedDevOrigins for network access)
 ├── package.json
 ├── pnpm-lock.yaml
 └── tsconfig.json
@@ -267,6 +271,14 @@ pnpm dev
 # Type-check and build for production
 pnpm build
 ```
+
+> **Network access note:** Always open the app at `http://localhost:3000` rather than your machine's network IP. Next.js restricts cross-origin WebSocket connections (used for hot reload) by default. If you need to access it from another device on the same network, add your IP to `next.config.ts`:
+>
+> ```ts
+> const nextConfig: NextConfig = {
+>   allowedDevOrigins: ["192.168.x.x"],
+> };
+> ```
 
 ---
 

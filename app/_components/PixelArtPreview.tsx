@@ -5,12 +5,14 @@ import type { MinecraftBlock } from "../_lib/blocks";
 
 interface Props {
   blockGrid: MinecraftBlock[][];
+  /** When true, renders a pulsing skeleton overlay instead of the canvas. */
+  isLoading?: boolean;
 }
 
 const MIN_CELL = 2;
 const MAX_CELL = 32;
 
-export default function PixelArtPreview({ blockGrid }: Props) {
+export default function PixelArtPreview({ blockGrid, isLoading = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState(6);
@@ -60,12 +62,35 @@ export default function PixelArtPreview({ blockGrid }: Props) {
 
   const handleMouseLeave = () => setTooltip(null);
 
-  if (rows === 0) {
+  // Loading skeleton — shown while the generation pipeline is running
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-        No preview yet — generate a pixel art first.
+      <div ref={containerRef} className="relative w-full h-full flex flex-col gap-3 overflow-hidden">
+        {/* Zoom controls — disabled while loading */}
+        <div className="flex items-center gap-2 flex-shrink-0 opacity-40 pointer-events-none select-none">
+          <span className="text-xs text-zinc-400">Zoom</span>
+          <button className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">−</button>
+          <span className="text-xs text-zinc-300 w-8 text-center">—</span>
+          <button className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">+</button>
+        </div>
+        {/* Skeleton */}
+        <div className="flex-1 min-h-0 rounded-xl border border-zinc-700 overflow-hidden relative bg-zinc-900">
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-800" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-600">
+            <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <span className="text-sm">Generating pixel art…</span>
+          </div>
+        </div>
       </div>
     );
+  }
+
+  // Empty — parent panel handles the empty-state message; return null here
+  if (rows === 0) {
+    return null;
   }
 
   return (

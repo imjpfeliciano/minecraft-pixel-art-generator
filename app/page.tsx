@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
 import PixelArtPreview from "./_components/PixelArtPreview";
@@ -10,10 +10,77 @@ import { mapPixelsToBlocks } from "./_lib/color-matcher";
 import { loadAndResizeImage } from "./_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "./_lib/litematic-generator";
 
+// ─── Step tracker ─────────────────────────────────────────────────────────────
+
+type StepState = "completed" | "active" | "pending";
+
+interface Step {
+  id: number;
+  label: string;
+  state: StepState;
+}
+
+function StepTracker({ steps }: { steps: Step[] }) {
+  return (
+    <div className="flex flex-col gap-0">
+      {steps.map((step, i) => (
+        <div key={step.id} className="flex items-stretch gap-3">
+          {/* Badge + connector column */}
+          <div className="flex flex-col items-center">
+            <div
+              className={`
+                w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-colors
+                ${step.state === "completed"
+                  ? "bg-green-600 text-white"
+                  : step.state === "active"
+                    ? "border-2 border-green-500 text-green-400"
+                    : "border-2 border-zinc-700 text-zinc-600"
+                }
+              `}
+            >
+              {step.state === "completed" ? (
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : (
+                step.id
+              )}
+            </div>
+            {/* Connector line */}
+            {i < steps.length - 1 && (
+              <div
+                className={`w-px flex-1 my-1 ${
+                  step.state === "completed" ? "bg-green-700" : "bg-zinc-800"
+                }`}
+                style={{ minHeight: 12 }}
+              />
+            )}
+          </div>
+          {/* Label */}
+          <div className="pb-3 pt-0.5">
+            <span
+              className={`text-xs font-medium ${
+                step.state === "pending" ? "text-zinc-600" : "text-zinc-300"
+              }`}
+            >
+              {step.label}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function Home() {
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  // Ref tracks the current blob URL so we can revoke it safely without
+  // triggering the React strict-mode double-invoke bug on useEffect cleanup.
+  const imagePreviewUrlRef = useRef<string | null>(null);
 
   // Controls
   const [width, setWidth] = useState(128);
@@ -30,7 +97,17 @@ export default function Home() {
   const [lastLitematic, setLastLitematic] = useState<Uint8Array | null>(null);
   const [schematicName, setSchematicName] = useState("PixelArt");
 
+  // Revoke the final blob URL when the page unmounts (empty deps = runs once).
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+    };
+  }, []);
+
   const handleImageSelected = useCallback((file: File, url: string) => {
+    // Revoke the previous blob URL before replacing it
+    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+    imagePreviewUrlRef.current = url;
     setImageFile(file);
     setImagePreviewUrl(url);
     setBlockGrid([]);
@@ -42,7 +119,6 @@ export default function Home() {
     setSelectedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(cat)) {
-        // Don't allow deselecting if it's the last one
         if (next.size === 1) return prev;
         next.delete(cat);
       } else {
@@ -68,7 +144,6 @@ export default function Home() {
       const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks);
       setBlockGrid(grid);
 
-      // Pre-build the litematic so download is instant
       const litematic = generateLitematic(grid, orientation, schematicName);
       setLastLitematic(litematic);
     } catch (err) {
@@ -83,10 +158,44 @@ export default function Home() {
     downloadLitematic(lastLitematic, `${schematicName}.litematic`);
   }, [lastLitematic, schematicName]);
 
+  // ── Step tracker state ──────────────────────────────────────────────────────
+  const steps: Step[] = [
+    {
+      id: 1,
+      label: "Upload image",
+      state: imageFile ? "completed" : "active",
+    },
+    {
+      id: 2,
+      label: "Configure",
+      state: blockGrid.length > 0 || isProcessing
+        ? "completed"
+        : imageFile
+          ? "active"
+          : "pending",
+    },
+    {
+      id: 3,
+      label: "Generate",
+      state: blockGrid.length > 0
+        ? "completed"
+        : isProcessing
+          ? "active"
+          : imageFile
+            ? "active"
+            : "pending",
+    },
+    {
+      id: 4,
+      label: "Download",
+      state: blockGrid.length > 0 ? "active" : "pending",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-      {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-3">
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-3 flex-shrink-0">
         <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
           <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v10H7V7zm2 2v6h6V9H9z" />
@@ -99,23 +208,23 @@ export default function Home() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+        {/* ── Sidebar ───────────────────────────────────────────────────────── */}
         <aside className="w-80 flex-shrink-0 border-r border-zinc-800 overflow-y-auto p-5 flex flex-col gap-6">
-          {/* Image upload */}
+          {/* Step tracker */}
+          <StepTracker steps={steps} />
+
+          <div className="border-t border-zinc-800" />
+
+          {/* 1. Upload */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
-              1. Upload Image
+              Upload Image
             </h2>
             <ImageUpload onImageSelected={handleImageSelected} />
-            {imagePreviewUrl && (
-              <div className="mt-3 rounded-xl overflow-hidden border border-zinc-700 aspect-video bg-zinc-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imagePreviewUrl}
-                  alt="Input preview"
-                  className="w-full h-full object-contain"
-                />
-              </div>
+            {imageFile && (
+              <p className="mt-2 text-xs text-zinc-500 truncate">
+                {imageFile.name}
+              </p>
             )}
           </section>
 
@@ -133,10 +242,10 @@ export default function Home() {
             />
           </section>
 
-          {/* Controls */}
+          {/* 2. Configure */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
-              2. Configure
+              Configure
             </h2>
             <ControlPanel
               width={width}
@@ -160,59 +269,103 @@ export default function Home() {
           )}
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 flex flex-col overflow-hidden p-5 gap-5 min-w-0">
-          {/* Preview */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3 flex-shrink-0">
-              3. Preview
-            </h2>
-            <div className="flex-1 min-h-0">
-              <PixelArtPreview blockGrid={blockGrid} />
+        {/* ── Main ──────────────────────────────────────────────────────────── */}
+        <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+          {/* ── Two panels ──────────────────────────────────────────────────── */}
+          <div className="flex flex-1 overflow-hidden gap-px bg-zinc-800 min-h-0">
+
+            {/* Original image panel */}
+            <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
+              {/* Panel header */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                  Original
+                </span>
+                {imageFile && (
+                  <span className="text-xs text-zinc-600 truncate">
+                    {imageFile.name}
+                  </span>
+                )}
+              </div>
+
+              {/* Panel body */}
+              <div className="flex-1 overflow-hidden flex items-center justify-center p-4 min-h-0">
+                {imagePreviewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Original image"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                          d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M12 3v.01" />
+                      </svg>
+                    </div>
+                    <p className="text-zinc-600 text-sm">Upload an image to begin</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Generated pixel art panel */}
+            <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
+              {/* Panel header */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+                <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                  Pixel Art
+                </span>
+                {blockGrid.length > 0 && (
+                  <span className="text-xs text-zinc-600">
+                    {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
+                  </span>
+                )}
+              </div>
+
+              {/* Panel body */}
+              <div className="flex-1 overflow-hidden p-4 min-h-0">
+                {isProcessing || blockGrid.length > 0 ? (
+                  <PixelArtPreview blockGrid={blockGrid} isLoading={isProcessing} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <p className="text-zinc-600 text-sm text-center">
+                      {imageFile
+                        ? "Configure settings and click Generate"
+                        : "Upload an image first"}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Block legend + download */}
+          {/* ── Download bar + block legend ────────────────────────────────── */}
           {blockGrid.length > 0 && (
-            <div className="flex-shrink-0 flex flex-col gap-4">
-              <BlockLegend blockGrid={blockGrid} />
-
+            <div className="flex-shrink-0 border-t border-zinc-800 p-4 flex flex-col gap-4">
+              {/* Download button */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-500 active:scale-95 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Download .litematic
                 </button>
-
                 <div className="text-xs text-zinc-500">
                   <p>Import via <span className="text-zinc-300 font-medium">Litematica mod</span></p>
                   <p>in Minecraft → Load Schematics</p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Empty state */}
-          {blockGrid.length === 0 && !isProcessing && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
-              <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-zinc-700 flex items-center justify-center">
-                <svg className="w-10 h-10 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="3" width="7" height="7" strokeWidth="1.5" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" strokeWidth="1.5" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" strokeWidth="1.5" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" strokeWidth="1.5" rx="1" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-zinc-400 font-medium">No pixel art generated yet</p>
-                <p className="text-zinc-600 text-sm mt-1">
-                  Upload an image and click <span className="text-zinc-400">Generate Pixel Art</span>
-                </p>
-              </div>
+              {/* Block legend */}
+              <BlockLegend blockGrid={blockGrid} />
             </div>
           )}
         </main>

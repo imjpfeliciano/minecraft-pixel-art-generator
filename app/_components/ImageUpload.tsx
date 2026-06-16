@@ -1,18 +1,16 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 interface Props {
   onImageSelected: (file: File, previewUrl: string) => void;
 }
 
 export default function ImageUpload({ onImageSelected }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.type.startsWith("image/")) return;
       const url = URL.createObjectURL(file);
       onImageSelected(file, url);
     },
@@ -43,8 +41,7 @@ export default function ImageUpload({ onImageSelected }: Props) {
   };
 
   return (
-    <div
-      onClick={() => inputRef.current?.click()}
+    <label
       onDrop={onDrop}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -59,7 +56,6 @@ export default function ImageUpload({ onImageSelected }: Props) {
       `}
     >
       <input
-        ref={inputRef}
         type="file"
         accept="image/*"
         className="sr-only"
@@ -84,6 +80,6 @@ export default function ImageUpload({ onImageSelected }: Props) {
         </p>
         <p className="text-xs text-zinc-500 mt-1">or click to browse — PNG, JPG, WEBP, GIF</p>
       </div>
-    </div>
+    </label>
   );
 }
