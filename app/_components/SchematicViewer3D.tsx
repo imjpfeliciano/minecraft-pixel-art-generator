@@ -17,10 +17,22 @@ export interface SchematicViewer3DProps {
   foundationBlockId?: string;
 }
 
-interface ColorGroup {
-  colorKey: string;
+interface BlockGroup {
+  /** Unique key for this group — texture name, or "rgb:r,g,b" for texture-less blocks. */
+  groupKey: string;
+  texture: string;
   rgb: [number, number, number];
   positions: THREE.Vector3[];
+  blockId: string;
+  blockName: string;
+}
+
+interface HoverInfo {
+  name: string;
+  id: string;
+  rgb: [number, number, number];
+  x: number;
+  y: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -39,14 +51,21 @@ function computeGroups(
   foundationEnabled: boolean,
   layerMode: LayerMode,
   activeLayer: number,
-): ColorGroup[] {
+): BlockGroup[] {
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
-  const map = new Map<string, ColorGroup>();
+  const map = new Map<string, BlockGroup>();
 
-  const add = (rgb: [number, number, number], x: number, y: number, z: number) => {
-    const k = `${rgb[0]},${rgb[1]},${rgb[2]}`;
-    if (!map.has(k)) map.set(k, { colorKey: k, rgb, positions: [] });
+  const add = (
+    block: { texture: string; rgb: [number, number, number]; id: string; name: string },
+    x: number,
+    y: number,
+    z: number,
+  ) => {
+    const k = block.texture || `rgb:${block.rgb[0]},${block.rgb[1]},${block.rgb[2]}`;
+    if (!map.has(k)) {
+      map.set(k, { groupKey: k, texture: block.texture, rgb: block.rgb, positions: [], blockId: block.id, blockName: block.name });
+    }
     map.get(k)!.positions.push(new THREE.Vector3(x, y, z));
   };
 
@@ -69,13 +88,14 @@ function computeGroups(
       for (let col = 0; col < cols; col++) {
         const block = blockGrid[row][col];
         if (block.id === "minecraft:air") continue;
-        add(block.rgb, col, y, 0);
+        add(block, col, y, 0);
       }
     }
     // Foundation: a single row at y=-1 along the X axis, spanning all columns.
     if (foundationEnabled) {
+      const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: "Foundation" };
       for (let col = 0; col < cols; col++) {
-        add(FOUNDATION_RGB, col, -1, 0);
+        add(fbk, col, -1, 0);
       }
     }
   } else {
@@ -93,14 +113,15 @@ function computeGroups(
       }
     };
 
+    const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: "Foundation" };
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         if (foundationEnabled && isYVisible(-1)) {
-          add(FOUNDATION_RGB, col, -1, row);
+          add(fbk, col, -1, row);
         }
         if (isYVisible(0)) {
           const block = blockGrid[row][col];
-          if (block.id !== "minecraft:air") add(block.rgb, col, 0, row);
+          if (block.id !== "minecraft:air") add(block, col, 0, row);
         }
       }
     }
@@ -113,10 +134,18 @@ function computeGroups(
 
 function InstanceGroup({
   rgb,
+  texture,
   positions,
+  blockId,
+  blockName,
+  onHover,
 }: {
   rgb: [number, number, number];
+  texture: string;
   positions: THREE.Vector3[];
+  blockId: string;
+  blockName: string;
+  onHover: (info: HoverInfo | null) => void;
 }) {
   const [r, g, b] = rgb;
 
@@ -133,18 +162,49 @@ function InstanceGroup({
     });
     instance.instanceMatrix.needsUpdate = true;
     return { mesh: instance, geo: geometry, mat: material };
-  }, [r, g, b, positions]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r, g, b, positions, texture]);
+
+  // Load the block texture and apply it to the material
+  useEffect(() => {
+    if (!texture) return;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      `/blocks/${texture}.png`,
+      (tex) => {
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        mat.map = tex;
+        mat.color.set(0xffffff);
+        mat.needsUpdate = true;
+      },
+    );
+  // mat identity is tied to the useMemo above; texture changes force a new mat via the memo key
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mat, texture]);
 
   // Dispose Three.js objects when they are replaced or the component unmounts
   useEffect(() => {
     return () => {
       geo.dispose();
+      if (mat.map) mat.map.dispose();
       mat.dispose();
       mesh.dispose();
     };
   }, [mesh, geo, mat]);
 
-  return <primitive object={mesh} dispose={null} />;
+  return (
+    <primitive
+      object={mesh}
+      dispose={null}
+      onPointerMove={(e: { stopPropagation: () => void; nativeEvent: MouseEvent }) => {
+        e.stopPropagation();
+        onHover({ name: blockName, id: blockId, rgb, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY });
+      }}
+      onPointerOut={() => onHover(null)}
+    />
+  );
 }
 
 // ─── Scene ────────────────────────────────────────────────────────────────────
@@ -156,6 +216,7 @@ function Scene({
   layerMode,
   activeLayer,
   target,
+  onHover,
 }: {
   blockGrid: MinecraftBlock[][];
   orientation: Orientation;
@@ -163,6 +224,7 @@ function Scene({
   layerMode: LayerMode;
   activeLayer: number;
   target: [number, number, number];
+  onHover: (info: HoverInfo | null) => void;
 }) {
   const cols = blockGrid[0]?.length ?? 0;
   const rows = blockGrid.length;
@@ -184,7 +246,15 @@ function Scene({
         makeDefault
       />
       {groups.map((g) => (
-        <InstanceGroup key={g.colorKey} rgb={g.rgb} positions={g.positions} />
+        <InstanceGroup
+          key={g.groupKey}
+          rgb={g.rgb}
+          texture={g.texture}
+          positions={g.positions}
+          blockId={g.blockId}
+          blockName={g.blockName}
+          onHover={onHover}
+        />
       ))}
     </>
   );
@@ -213,6 +283,7 @@ export default function SchematicViewer3D({
 
   const [layerMode, setLayerMode] = useState<LayerMode>("all");
   const [activeLayer, setActiveLayer] = useState(1);
+  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
   // Reset to defaults when the total layer count changes.
   useEffect(() => {
@@ -270,6 +341,7 @@ export default function SchematicViewer3D({
           layerMode={layerMode}
           activeLayer={activeLayer}
           target={target}
+          onHover={setHoverInfo}
         />
       </Canvas>
 
@@ -328,7 +400,25 @@ export default function SchematicViewer3D({
         <p>Drag to rotate</p>
         <p>Scroll to zoom</p>
         <p>Right-drag to pan</p>
+        <p>Hover to inspect</p>
       </div>
+
+      {/* Block hover tooltip — mirrors the 2D preview style */}
+      {hoverInfo && (
+        <div
+          className="fixed z-50 pointer-events-none rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-xs shadow-xl"
+          style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 12 }}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-sm flex-shrink-0 border border-zinc-600"
+              style={{ backgroundColor: `rgb(${hoverInfo.rgb[0]},${hoverInfo.rgb[1]},${hoverInfo.rgb[2]})` }}
+            />
+            <span className="text-zinc-100 font-medium">{hoverInfo.name}</span>
+          </div>
+          <p className="text-zinc-500 mt-0.5">{hoverInfo.id}</p>
+        </div>
+      )}
     </div>
   );
 }

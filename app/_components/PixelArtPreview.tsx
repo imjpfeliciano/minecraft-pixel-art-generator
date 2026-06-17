@@ -33,17 +33,98 @@ export default function PixelArtPreview({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const overlayImgRef = useRef<HTMLImageElement | null>(null);
+  const textureCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   const [cellSize, setCellSize] = useState(6);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; block: MinecraftBlock } | null>(null);
+  // Incremented each time new textures finish loading to trigger a canvas redraw
+  const [texturesVersion, setTexturesVersion] = useState(0);
 
   // Pan state
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 });
 
+  // Refs that always hold the latest state values — used by the stable wheel
+  // handler below so it never captures stale closure values.
+  const cellSizeRef = useRef(cellSize);
+  const offsetRef = useRef(offset);
+  cellSizeRef.current = cellSize;
+  offsetRef.current = offset;
+
+  // Wheel zoom handler — re-assigned every render so the closure is always fresh.
+  // A stable proxy is attached to the DOM as a non-passive listener (required for
+  // e.preventDefault() to actually suppress the default page scroll in modern browsers).
+  const wheelHandlerRef = useRef<(e: WheelEvent) => void>(() => {});
+  wheelHandlerRef.current = (e: WheelEvent) => {
+    e.preventDefault();
+    const vp = viewportRef.current;
+    if (!vp) return;
+    // Normalise delta: scroll up / pinch out → zoom in
+    const delta = e.deltaY < 0 ? 1 : -1;
+    const rect = vp.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const prev = cellSizeRef.current;
+    const next = Math.max(MIN_CELL, Math.min(MAX_CELL, prev + delta));
+    if (next === prev) return;
+    const scale = next / prev;
+    const o = offsetRef.current;
+    setCellSize(next);
+    // Keep the canvas point under the cursor stationary after the zoom
+    setOffset({
+      x: mx - (mx - o.x) * scale,
+      y: my - (my - o.y) * scale,
+    });
+  };
+
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const proxy = (e: WheelEvent) => wheelHandlerRef.current(e);
+    vp.addEventListener("wheel", proxy, { passive: false });
+    return () => vp.removeEventListener("wheel", proxy);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
+
+  // Preload block textures; trigger a redraw when each batch finishes
+  useEffect(() => {
+    if (!blockGrid.length) return;
+
+    const needed: string[] = [];
+    for (const row of blockGrid) {
+      for (const block of row) {
+        if (block.texture && !textureCacheRef.current.has(block.texture)) {
+          needed.push(block.texture);
+        }
+      }
+    }
+
+    const unique = [...new Set(needed)];
+    if (unique.length === 0) {
+      setTexturesVersion((v) => v + 1);
+      return;
+    }
+
+    let loaded = 0;
+    for (const tex of unique) {
+      const img = new Image();
+      img.onload = () => {
+        textureCacheRef.current.set(tex, img);
+        loaded++;
+        if (loaded === unique.length) setTexturesVersion((v) => v + 1);
+      };
+      img.onerror = () => {
+        loaded++;
+        if (loaded === unique.length) setTexturesVersion((v) => v + 1);
+      };
+      img.src = `/blocks/${tex}.png`;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockGrid]);
 
   // Preload overlay image into a ref; trigger a redraw once loaded
   useEffect(() => {
@@ -56,7 +137,7 @@ export default function PixelArtPreview({
       overlayImgRef.current = img;
       const canvas = canvasRef.current;
       if (!canvas || rows === 0 || cols === 0) return;
-      drawCanvas(canvas, blockGrid, rows, cols, cellSize, showGrid, gridColor, showOriginalOverlay, img);
+      drawCanvas(canvas, blockGrid, rows, cols, cellSize, showGrid, gridColor, showOriginalOverlay, img, textureCacheRef.current);
     };
     img.src = originalImageUrl;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,7 +161,7 @@ export default function PixelArtPreview({
     });
   }, [rows, cols]);
 
-  // Redraw canvas whenever anything visual changes
+  // Redraw canvas whenever anything visual changes (including after textures load)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || rows === 0 || cols === 0) return;
@@ -94,8 +175,11 @@ export default function PixelArtPreview({
       gridColor,
       showOriginalOverlay,
       overlayImgRef.current,
+      textureCacheRef.current,
     );
-  }, [blockGrid, cellSize, rows, cols, showGrid, gridColor, showOriginalOverlay]);
+  // texturesVersion is intentionally included to redraw after textures finish loading
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockGrid, cellSize, rows, cols, showGrid, gridColor, showOriginalOverlay, texturesVersion]);
 
   // ── Pan handlers ────────────────────────────────────────────────────────────
 
@@ -147,23 +231,23 @@ export default function PixelArtPreview({
   }, [stopDrag]);
 
   const handleZoom = useCallback((delta: number) => {
-    setCellSize((prev) => {
-      const next = Math.max(MIN_CELL, Math.min(MAX_CELL, prev + delta));
-      // Keep the canvas visually centered after zoom
-      if (viewportRef.current) {
-        const { clientWidth, clientHeight } = viewportRef.current;
-        const oldW = cols * prev;
-        const oldH = rows * prev;
-        const newW = cols * next;
-        const newH = rows * next;
-        setOffset((o) => ({
-          x: o.x - (newW - oldW) / 2 + (clientWidth - oldW) / 2 - (clientWidth - oldW) / 2,
-          y: o.y - (newH - oldH) / 2 + (clientHeight - oldH) / 2 - (clientHeight - oldH) / 2,
-        }));
-      }
-      return next;
+    const prev = cellSizeRef.current;
+    const next = Math.max(MIN_CELL, Math.min(MAX_CELL, prev + delta));
+    if (next === prev) return;
+    const scale = next / prev;
+    const o = offsetRef.current;
+    const vp = viewportRef.current;
+    // Zoom toward the viewport center
+    const cx = vp ? vp.clientWidth / 2 : 0;
+    const cy = vp ? vp.clientHeight / 2 : 0;
+    setCellSize(next);
+    setOffset({
+      x: cx - (cx - o.x) * scale,
+      y: cy - (cy - o.y) * scale,
     });
-  }, [cols, rows]);
+  // cellSizeRef / offsetRef are always current; no deps needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
   if (isLoading) {
@@ -313,19 +397,28 @@ function drawCanvas(
   gridColor: string,
   showOriginalOverlay: boolean,
   overlayImg: HTMLImageElement | null,
+  textureCache: Map<string, HTMLImageElement>,
 ) {
   canvas.width = cols * cellSize;
   canvas.height = rows * cellSize;
 
   const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
 
-  // Draw block colors
+  // Draw block textures (or solid color fallback while textures are loading)
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const block = blockGrid[row][col];
-      const [r, g, b] = block.rgb;
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+      const x = col * cellSize;
+      const y = row * cellSize;
+      const texImg = block.texture ? textureCache.get(block.texture) : undefined;
+      if (texImg) {
+        ctx.drawImage(texImg, x, y, cellSize, cellSize);
+      } else {
+        const [r, g, b] = block.rgb;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, y, cellSize, cellSize);
+      }
     }
   }
 

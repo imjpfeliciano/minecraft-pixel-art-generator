@@ -30,9 +30,9 @@ Two scripts run in sequence via `npm run sync-blocks`:
 
 ### `scripts/download-block-textures.mjs` — fetch all assets
 
-1. **Enumerate**: call the GitHub Trees API (`GET /repos/Mojang/bedrock-samples/git/trees/main?recursive=1`) to list every file; filter to paths matching `resource_pack/textures/blocks/*.png` (excludes `.tga`, `.json`, subfolders like `candles/`). This yields 1000+ filenames.
-2. **Download**: for each PNG, fetch `https://raw.githubusercontent.com/Mojang/bedrock-samples/main/{path}` and write to `public/blocks/{filename}.png`. Skip if already present (use `--force` flag to re-download).
-3. **Compute RGB**: use `sharp` (new dev dependency) to resize each PNG to 1×1 pixel and read the resulting RGB — this gives the true average color of the texture. Write the results to `scripts/generated-blocks.json` as `[{ texture, avgRgb }]`.
+1. **Enumerate**: call the GitHub Trees API (`GET /repos/Mojang/bedrock-samples/git/trees/main?recursive=1`) to list every file; filter to paths matching `resource_pack/textures/blocks/*.png` (excludes `.tga`, `.json`, subfolders like `candles/`). This yields 1000+ filenames. Pass `--local` to skip the API call and reprocess files already in `public/blocks/`.
+2. **Download**: for each PNG, fetch `https://raw.githubusercontent.com/Mojang/bedrock-samples/main/{path}` and write to `public/blocks/{filename}.png`. Skip if already present (use `--force` to re-download).
+3. **Compute stats**: use `sharp` (new dev dependency) to sample each PNG at 16×16 and compute: `avgRgb` (average color), `avgAlpha` (average opacity 0–255), and `variance` (per-channel color spread). Write results to `scripts/generated-blocks.json`.
 
 ### `scripts/generate-blocks.mjs` — build the palette
 
@@ -58,7 +58,9 @@ Reads `generated-blocks.json`, applies heuristics to derive block metadata, and 
 
 **Name derivation**: replace underscores with spaces, title-case each word (e.g. `wool_colored_white` → `"White Wool"`). A lookup table overrides the generic rule for cases like `hardened_clay` → `"Terracotta"`.
 
-**Filtering**: skip non-block textures — patterns like `pottery`, `pattern`, `sapling`, `door`, `trapdoor`, `fence`, `gate`, `slab`, `stair`, `button`, `pressure_plate`, `torch`, `_top`, `_bottom`, `_side`, `_front`, `_back`, `_inner`, `_outer`, `_corner`, `cluster`, `bud`. Keep only assets that represent the full face of a solid placeable block.
+**Filtering** — two-stage:
+1. **Alpha filter**: any texture with `avgAlpha < 230` is discarded automatically. This eliminates leaves, wheat, saplings, mushrooms, coral fans, glass panes, and all other partially-transparent non-solid blocks without needing to name them explicitly.
+2. **Pattern filter**: a skip-list of name patterns removes remaining non-block textures (directional faces, doors, slabs, stairs, buttons, torches, signs, etc.).
 
 **ID mapping**: derive a `minecraft:` Java Edition ID from the Bedrock texture name using a hand-maintained lookup for cases where naming diverges (e.g. `wool_colored_white` → `minecraft:white_wool`), and a regex fallback for new blocks where Bedrock and Java names align (e.g. `bamboo_planks` → `minecraft:bamboo_planks`).
 
@@ -69,8 +71,12 @@ The script is idempotent — re-run it any time Mojang updates the repo to pull 
 ```json
 "download-textures": "node scripts/download-block-textures.mjs",
 "generate-blocks":   "node scripts/generate-blocks.mjs",
-"sync-blocks":       "npm run download-textures && npm run generate-blocks"
+"sync-blocks":       "node scripts/download-block-textures.mjs && node scripts/generate-blocks.mjs",
+"regen-blocks":      "node scripts/download-block-textures.mjs --local && node scripts/generate-blocks.mjs"
 ```
+
+`sync-blocks` — full refresh (downloads from GitHub + regenerates palette).  
+`regen-blocks` — reprocesses already-downloaded files only (no network, fast).
 
 New dev dependency: `sharp` (for server-side PNG pixel sampling).
 

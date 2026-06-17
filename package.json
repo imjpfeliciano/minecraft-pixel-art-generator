@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "download-textures": "node scripts/download-block-textures.mjs",
+    "generate-blocks": "node scripts/generate-blocks.mjs",
+    "sync-blocks": "node scripts/download-block-textures.mjs && node scripts/generate-blocks.mjs",
+    "regen-blocks": "node scripts/download-block-textures.mjs --local && node scripts/generate-blocks.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -27,6 +31,7 @@
     "@types/three": "^0.184.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

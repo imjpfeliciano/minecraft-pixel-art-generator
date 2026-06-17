@@ -97,7 +97,7 @@ export function generateLitematic(
   };
 
   // Air is always index 0
-  ensurePalette({ id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air" });
+  ensurePalette({ id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air", texture: "" });
 
   // Collect indices, building palette on the fly
   //
@@ -132,6 +132,7 @@ export function generateLitematic(
       name: label,
       rgb: [128, 128, 128],
       category: "Foundation",
+      texture: "",
     };
     foundationIdx = ensurePalette(foundationBlock);
   }

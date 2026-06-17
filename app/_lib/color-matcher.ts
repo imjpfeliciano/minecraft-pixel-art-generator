@@ -133,7 +133,7 @@ export function mapPixelsToBlocks(
   allowedBlocks: MinecraftBlock[] = MINECRAFT_BLOCKS,
   fillBlock?: MinecraftBlock
 ): MinecraftBlock[][] {
-  const air: MinecraftBlock = { id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air" };
+  const air: MinecraftBlock = { id: "minecraft:air", name: "Air", rgb: [0, 0, 0], category: "Air", texture: "" };
   const transparentBlock = fillBlock ?? air;
   const result: MinecraftBlock[][] = [];
 
