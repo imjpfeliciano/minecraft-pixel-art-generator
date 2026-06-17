@@ -2,71 +2,95 @@
 
 ## Overview
 
-Download all 1000+ block textures from Mojang's bedrock-samples repo, auto-generate a comprehensive block palette from those assets (with RGB computed from pixels), make `texture` a required field, then wire sprites into both the 2D canvas and 3D Three.js previews.
+All 1000+ block textures from Mojang's open-source `bedrock-samples` repository are downloaded locally and used to:
+
+1. Auto-generate the block palette (`app/_lib/blocks.ts`) with RGB values computed from actual pixel data
+2. Render real Minecraft texture sprites in the 2D canvas preview and 3D Three.js viewer
+
+The palette is intentionally limited to **49 blocks** (Concrete × 16, Wool × 16, Terracotta × 17) to eliminate visual noise while covering the full Minecraft 16-color spectrum.
 
 ---
 
-## 1. `MinecraftBlock` type — `texture` is required
-
-Change the interface in [`app/_lib/blocks.ts`](../../app/_lib/blocks.ts) to make `texture` a required field:
+## `MinecraftBlock` interface
 
 ```ts
 export interface MinecraftBlock {
-  id: string;
-  name: string;
-  rgb: [number, number, number];
-  category: string;
-  texture: string; // Bedrock PNG stem, e.g. "wool_colored_white". "" for synthetic blocks (air).
+  id: string;       // "minecraft:white_wool"
+  name: string;     // "White Wool"
+  rgb: [number, number, number]; // average color sampled from the 16×16 texture
+  category: string; // "Wool"
+  texture: string;  // Bedrock PNG stem, e.g. "wool_colored_white"
+                    // "" for synthetic runtime-only blocks (air, foundation)
 }
 ```
 
-Synthetic runtime-only blocks (`minecraft:air`, foundation) carry `texture: ""` as a sentinel; renderers skip texture lookup when the value is empty and fall back to solid color or transparency.
+`texture: ""` is a sentinel used by renderers to skip sprite lookup and fall back to solid color or transparency.
 
 ---
 
-## 2. Asset download + block generation script
+## Scripts
 
-Two scripts run in sequence via `npm run sync-blocks`:
+### `scripts/download-block-textures.mjs`
 
-### `scripts/download-block-textures.mjs` — fetch all assets
+1. **Enumerate** — calls the GitHub Trees API (`GET /repos/Mojang/bedrock-samples/git/trees/main?recursive=1`) and filters to paths matching `resource_pack/textures/blocks/*.png`. Pass `--local` to skip the API call and re-process files already in `public/blocks/`.
+2. **Download** — fetches each PNG to `public/blocks/{filename}.png`. Skips existing files unless `--force` is passed.
+3. **Compute stats** — uses `sharp` to resize each PNG to 16×16 and compute:
+   - `avgRgb` — average color after compositing transparency onto grey
+   - `avgAlpha` — average opacity (0–255); used to detect non-solid blocks
+   - `variance` — average per-channel color spread; used to detect visually noisy textures
+4. Writes results to `scripts/generated-blocks.json` (gitignored).
 
-1. **Enumerate**: call the GitHub Trees API (`GET /repos/Mojang/bedrock-samples/git/trees/main?recursive=1`) to list every file; filter to paths matching `resource_pack/textures/blocks/*.png` (excludes `.tga`, `.json`, subfolders like `candles/`). This yields 1000+ filenames. Pass `--local` to skip the API call and reprocess files already in `public/blocks/`.
-2. **Download**: for each PNG, fetch `https://raw.githubusercontent.com/Mojang/bedrock-samples/main/{path}` and write to `public/blocks/{filename}.png`. Skip if already present (use `--force` to re-download).
-3. **Compute stats**: use `sharp` (new dev dependency) to sample each PNG at 16×16 and compute: `avgRgb` (average color), `avgAlpha` (average opacity 0–255), and `variance` (per-channel color spread). Write results to `scripts/generated-blocks.json`.
+### `scripts/generate-blocks.mjs`
 
-### `scripts/generate-blocks.mjs` — build the palette
+Reads `generated-blocks.json`, applies filters, and writes `app/_lib/blocks.ts`.
 
-Reads `generated-blocks.json`, applies heuristics to derive block metadata, and writes `app/_lib/blocks.ts`.
+#### Filter pipeline
 
-**Category heuristics** (by texture filename prefix/suffix):
+| Step | Filter | Threshold | What it removes |
+|------|--------|-----------|-----------------|
+| 1 | Alpha | `avgAlpha < 230` | Leaves, plants, glass, coral, wheat — any partially-transparent non-solid block |
+| 2 | Variance (non-anchors only) | `variance > 800` | Visually noisy/patterned textures (e.g. emerald block var≈1286, cobblestone var≈865, glowstone var≈3926) that look jarring in pixel art even when their average color is correct |
+| 3 | Pattern | Skip-list of name patterns | Directional face textures, door/stair/slab variants, entity textures, UI elements, water/lava, education-edition blocks |
+| 4 | Null mapping | Explicit `null` in `TEXTURE_TO_JAVA_ID` | Texture variants that are redundant with another face (e.g. `quartz_block_bottom`) |
+| 5 | Java-ID dedup | First occurrence wins | Bedrock ships some blocks under both old and new names (e.g. `hardened_clay_stained_blue` and `terracotta_blue` both map to `minecraft:blue_terracotta`) |
 
-| Pattern | Category |
-|---------|----------|
-| `wool_colored_*` | Wool |
-| `concrete_*` (not `_powder`) | Concrete |
-| `concrete_powder_*` | Concrete Powder |
-| `terracotta_*`, `hardened_clay*` | Terracotta |
-| `planks_*`, `*_planks`, `*_log*`, `*_wood` | Wood |
-| `stone*`, `deepslate*`, `cobblestone*`, `tuff*`, `calcite*` | Stone |
-| `sand*`, `dirt*`, `gravel*`, `clay*` | Natural |
-| `snow*`, `ice*`, `packed_ice*`, `blue_ice*` | Frozen |
-| `*_block` matching ore/mineral names | Mineral |
-| `netherrack*`, `nether_*`, `obsidian*`, `basalt*`, `blackstone*`, `crimson_*`, `warped_*` | Nether |
-| `end_stone*`, `purpur*` | End |
-| `moss*`, `mud*`, `mangrove_*`, `sculk*`, `*_leaves*` | Nature |
-| anything else (bricks, glowstone, etc.) | Decorative |
+#### Anchor blocks
 
-**Name derivation**: replace underscores with spaces, title-case each word (e.g. `wool_colored_white` → `"White Wool"`). A lookup table overrides the generic rule for cases like `hardened_clay` → `"Terracotta"`.
+Concrete, Wool, and Terracotta blocks are **anchors** — they bypass the variance filter and the CIELAB deduplication step and are always included in the palette with every color variant.
 
-**Filtering** — two-stage:
-1. **Alpha filter**: any texture with `avgAlpha < 230` is discarded automatically. This eliminates leaves, wheat, saplings, mushrooms, coral fans, glass panes, and all other partially-transparent non-solid blocks without needing to name them explicitly.
-2. **Pattern filter**: a skip-list of name patterns removes remaining non-block textures (directional faces, doors, slabs, stairs, buttons, torches, signs, etc.).
+This ensures the color matcher always has the complete 16-color spectrum available in each material group, even when some variants are perceptually close (e.g. Green Wool and Green Concrete have similar average colors but are meaningfully different materials).
 
-**ID mapping**: derive a `minecraft:` Java Edition ID from the Bedrock texture name using a hand-maintained lookup for cases where naming diverges (e.g. `wool_colored_white` → `minecraft:white_wool`), and a regex fallback for new blocks where Bedrock and Java names align (e.g. `bamboo_planks` → `minecraft:bamboo_planks`).
+```js
+function isAnchorTexture(texture) {
+  return (
+    /^concrete_(?!powder_)/.test(texture) ||   // all 16 concrete colors
+    /^wool_colored_/.test(texture) ||           // all 16 wool colors
+    /^hardened_clay_stained_/.test(texture) ||  // all 16 stained terracotta (Bedrock)
+    /^terracotta_(?=\w)/.test(texture) ||       // stained terracotta (new Bedrock names)
+    ANCHOR_EXACT.has(texture)                   // "hardened_clay" = plain terracotta
+  );
+}
+```
 
-The script is idempotent — re-run it any time Mojang updates the repo to pull in new blocks.
+Non-anchor blocks that survive all filters also go through a CIELAB deduplication pass (threshold ΔE = 12): a block is dropped if its perceptual color is within 12 units of an already-accepted block. Since the palette is currently anchors-only, this pass has no effect unless the anchor filter is loosened in future.
 
-**New `package.json` scripts:**
+#### Bedrock → Java ID mapping
+
+Bedrock texture names often diverge from Java Edition block IDs. A hand-maintained `TEXTURE_TO_JAVA_ID` lookup handles the common cases:
+
+- `wool_colored_{color}` → `minecraft:{color}_wool`
+- `concrete_{color}` → `minecraft:{color}_concrete`
+- `hardened_clay_stained_{color}` and `terracotta_{color}` → `minecraft:{color}_terracotta`
+- `concrete_silver` / `wool_colored_silver` / `hardened_clay_stained_silver` → `minecraft:light_gray_*` (Bedrock calls this color "silver"; Java calls it "light_gray")
+
+#### Name derivation
+
+Human-readable names are derived from texture filenames:
+- `wool_colored_lime` → `"Lime Wool"`
+- `hardened_clay_stained_light_blue` → `"Light Blue Terracotta"`
+- `concrete_lime` → `"Lime Concrete"`
+
+#### `package.json` scripts
 
 ```json
 "download-textures": "node scripts/download-block-textures.mjs",
@@ -75,85 +99,50 @@ The script is idempotent — re-run it any time Mojang updates the repo to pull 
 "regen-blocks":      "node scripts/download-block-textures.mjs --local && node scripts/generate-blocks.mjs"
 ```
 
-`sync-blocks` — full refresh (downloads from GitHub + regenerates palette).  
-`regen-blocks` — reprocesses already-downloaded files only (no network, fast).
-
-New dev dependency: `sharp` (for server-side PNG pixel sampling).
+- **`sync-blocks`** — full refresh: downloads from GitHub then regenerates
+- **`regen-blocks`** — local-only: reprocesses already-downloaded files, no network
 
 ---
 
-## 3. 2D preview — `PixelArtPreview.tsx`
+## 2D preview — `PixelArtPreview.tsx`
 
-Current approach (solid color):
+Block textures are preloaded into an `imageCache: Map<string, HTMLImageElement>` when `blockGrid` changes. The draw loop uses `ctx.drawImage(img, x, y, cellSize, cellSize)` when a sprite is available, and falls back to `fillRect` with `block.rgb` during initial load or for `texture: ""` blocks.
+
+`ctx.imageSmoothingEnabled = false` ensures 16×16 sprites scale up with nearest-neighbor interpolation, matching Minecraft's pixel-art rendering.
+
+---
+
+## 3D preview — `SchematicViewer3D.tsx`
+
+Blocks are grouped into `InstancedMesh` objects by block type (one mesh per unique texture). For each group, `THREE.TextureLoader` loads `/blocks/{texture}.png` and the texture is applied with:
 
 ```ts
-ctx.fillStyle = `rgb(${r},${g},${b})`;
-ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+tex.magFilter = THREE.NearestFilter;
+tex.minFilter = THREE.NearestFilter;
+tex.colorSpace = THREE.SRGBColorSpace;
+mat.map = tex;
+mat.color.set(0xffffff); // let the texture provide all color
 ```
 
-New approach:
-
-- On `blockGrid` change, preload all unique `block.texture` values into an `imageCache: Map<string, HTMLImageElement>` using `useEffect`
-- In the draw loop: if a loaded image exists for the block's texture, call `ctx.drawImage(img, x, y, cellSize, cellSize)`; otherwise fall back to `fillRect` with `block.rgb` (covers loading state and `texture: ""` air blocks)
-- `imageRendering: "pixelated"` is already set — 16×16 source PNGs will scale up sharply
+A solid-color `MeshLambertMaterial` is used as fallback for blocks with `texture: ""`.
 
 ---
 
-## 4. 3D preview — `SchematicViewer3D.tsx`
+## PNG export — `image-processor.ts`
 
-Current approach (per-color `MeshLambertMaterial`):
+`renderBlockGridToDataUrl` accepts an optional `textureCache: Map<string, HTMLImageElement>`. When a cache entry exists for a block's texture, `drawImage` is used instead of `fillRect`, so PNG exports match the 2D preview.
 
-```ts
-const material = new THREE.MeshLambertMaterial({
-  color: new THREE.Color(r / 255, g / 255, b / 255),
-});
+---
+
+## Image sampling — nearest-neighbor center pixel
+
+`loadAndResizeImage` renders the source at its native resolution and samples the single pixel at the center of each output grid cell, rather than averaging the full cell area (bilinear downscaling). This prevents anti-aliased source edges from creating blended intermediate colors that map to unwanted "shadow" transition blocks.
+
 ```
-
-New approach:
-
-- Build a `textureCache: Map<string, THREE.Texture>` at component mount using `THREE.TextureLoader`
-- Load `/blocks/{block.texture}.png` per unique texture (skip empty string for air)
-- Set `magFilter = THREE.NearestFilter` and `minFilter = THREE.NearestFilter` on each texture for pixel-perfect cubes
-- Apply as `map` on `MeshLambertMaterial` (keeps ambient/directional lighting shading)
-- Fall back to solid-color material for any block whose texture fails to load
-
----
-
-## 5. PNG export — `image-processor.ts`
-
-`renderBlockGridToDataUrl` currently uses solid color only. Update it to accept an optional `textureMap: Map<string, HTMLImageElement>` parameter and call `drawImage` when an entry exists, preserving the solid-color path for server-side / pre-load contexts.
-
----
-
-## Data flow after changes
-
-```mermaid
-flowchart TD
-    bedrockRepo["Mojang/bedrock-samples (GitHub)"]
-    dlScript["download-block-textures.mjs\n(GitHub Trees API + fetch)"]
-    publicBlocks["public/blocks/*.png\n(1000+ files)"]
-    genJson["scripts/generated-blocks.json\n(texture + avgRgb)"]
-    genScript["generate-blocks.mjs\n(heuristics + ID mapping)"]
-    blocksTs["app/_lib/blocks.ts\n(id + rgb + texture, required)"]
-    colorMatcher["color-matcher.ts\n(rgb for matching)"]
-    blockGrid["blockGrid: MinecraftBlock[][]"]
-    preview2D["PixelArtPreview\n(drawImage / fillRect fallback)"]
-    preview3D["SchematicViewer3D\n(TextureLoader NearestFilter)"]
-    imgProcessor["image-processor.ts\n(PNG export)"]
-
-    bedrockRepo -->|"npm run download-textures"| dlScript
-    dlScript --> publicBlocks
-    dlScript --> genJson
-    genJson -->|"npm run generate-blocks"| genScript
-    genScript --> blocksTs
-    blocksTs --> colorMatcher
-    colorMatcher --> blockGrid
-    publicBlocks -->|"/blocks/{texture}.png"| preview2D
-    publicBlocks -->|"/blocks/{texture}.png"| preview3D
-    publicBlocks -->|"HTMLImageElement"| imgProcessor
-    blockGrid --> preview2D
-    blockGrid --> preview3D
-    blockGrid --> imgProcessor
+For each output cell (row, col):
+  srcX = floor((col + 0.5) * cellW)
+  srcY = floor((row + 0.5) * cellH)
+  → sample one pixel from the full-resolution buffer
 ```
 
 ---
@@ -162,11 +151,14 @@ flowchart TD
 
 | File | Change |
 |------|--------|
-| `app/_lib/blocks.ts` | `texture` required, full palette auto-generated *(overwritten by script)* |
-| `app/_components/PixelArtPreview.tsx` | image cache + `drawImage` |
-| `app/_components/SchematicViewer3D.tsx` | `THREE.TextureLoader` + `NearestFilter` |
-| `app/_lib/image-processor.ts` | optional texture map in export |
-| `scripts/download-block-textures.mjs` | *(new)* enumerate + download + compute RGB |
-| `scripts/generate-blocks.mjs` | *(new)* generate `blocks.ts` from JSON |
+| `app/_lib/blocks.ts` | `texture` required; 49-block palette auto-generated *(do not edit)* |
+| `app/_components/PixelArtPreview.tsx` | Texture cache + `drawImage`; scroll-wheel zoom centered on cursor |
+| `app/_components/SchematicViewer3D.tsx` | `THREE.TextureLoader` + `NearestFilter`; hover block tooltip |
+| `app/_lib/image-processor.ts` | Center-pixel sampling (nearest-neighbor); optional texture map in PNG export |
+| `app/_lib/color-matcher.ts` | Synthetic `air` block gets `texture: ""` |
+| `app/_lib/litematic-generator.ts` | Synthetic `air` and foundation blocks get `texture: ""` |
+| `scripts/download-block-textures.mjs` | *(new)* enumerate + download + compute RGB/alpha/variance |
+| `scripts/generate-blocks.mjs` | *(new)* anchor system, variance cap, CIELAB dedup, writes `blocks.ts` |
 | `scripts/generated-blocks.json` | *(new, gitignored)* intermediate artifact |
-| `package.json` | `sync-blocks` script + `sharp` dev dep |
+| `package.json` | `sync-blocks` / `regen-blocks` scripts + `sharp` dev dep |
+| `.gitignore` | `scripts/generated-blocks.json` excluded |

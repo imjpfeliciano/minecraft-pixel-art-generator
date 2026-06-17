@@ -7,22 +7,25 @@ A browser-based tool that converts any image into a Minecraft pixel art [Litemat
 ## Features
 
 - **Image upload** — drag-and-drop or click-to-browse; supports PNG, JPG, WEBP, GIF
-- **CIELAB perceptual color matching** — each pixel is matched to the closest of ~130 curated Minecraft blocks using Euclidean distance in CIELAB color space, which better reflects human vision than raw RGB distance
+- **CIELAB perceptual color matching** — each pixel is matched to the closest block in the palette using Euclidean distance in CIELAB color space, which better reflects human vision than raw RGB distance
+- **Nearest-neighbor pixel sampling** — the source image is rendered at its native resolution and each output cell samples its center pixel, preventing bilinear-blending artifacts (e.g. anti-aliased edges creating unwanted "shadow" transition blocks)
 - **Configurable dimensions** — set exact width × height in blocks (1–512 per axis); no aspect ratio is enforced
 - **Orientation control** — vertical (wall art, XY plane) or horizontal (floor art, XZ plane)
-- **Block category filters** — toggle which block families are eligible: Wool, Concrete, Terracotta, Stone, Wood, Natural, Frozen, Mineral, Nether, End, Nature, Decorative
-- **Background fill block** — replace transparent pixels with a chosen solid block (White Concrete, Obsidian, Stone, etc.) instead of leaving them as air
+- **Block category filters** — toggle which block families are eligible: Wool, Concrete, Terracotta
+- **Background fill block** — replace transparent pixels with a chosen solid block instead of leaving them as air
 - **Schematic name input** — name the region and the output file before downloading
 - **Live pixel art preview** — interactive canvas with:
   - Pan by clicking and dragging
-  - Zoom in/out with +/− controls (2–64 px per cell)
+  - Zoom in/out with **+/−** controls, **scroll wheel**, or **trackpad pinch** (zoom centers on cursor)
   - Grid overlay with a custom color picker
   - Original image overlay at 40% opacity for comparison
   - Hover tooltips showing each block's display name and namespaced ID
 - **3D schematic previewer** — toggle from 2D to an interactive Three.js 3D view of the generated schematic:
   - Drag to rotate (orbit), scroll to zoom, right-drag to pan
-  - Vertical schematics render as a wall on the XY plane; horizontal schematics render as floor art on the XZ plane, with the camera positioned above and angled inward for a natural top-down perspective
-  - **Layer controls** (shown when the schematic has more than one layer): select a layer mode — **All** (show all layers), **Single** (show only the active layer), **Below** (show active layer and below), or **Above** (show active layer and above) — then navigate between individual layers with the ← and → arrows
+  - **Hover any block** to see its name and namespaced ID — same tooltip style as the 2D preview
+  - Vertical schematics render as a wall on the XY plane; horizontal schematics render as floor art on the XZ plane, with the camera positioned above and angled inward
+  - **Layer controls** (shown when the schematic has more than one layer): select a layer mode — **All**, **Single**, **Below**, or **Above** — then navigate with ← / →
+- **Real Minecraft block textures** — the 2D canvas renders each cell using the actual 16×16 Bedrock texture sprite from Mojang's open-source repository; the 3D viewer applies the same sprites with `NearestFilter` for crisp cube faces
 - **Material list panel** — collapsible side panel showing all block types sorted by usage count, with block count and percentage; exports to CSV
 - **One-click download** — generates and saves a `.litematic` file compatible with Litematica v6 (Minecraft 1.21.4)
 - **Fully client-side** — all processing runs in the browser; no data leaves your machine
@@ -33,9 +36,9 @@ A browser-based tool that converts any image into a Minecraft pixel art [Litemat
 
 The generation pipeline has four stages:
 
-1. **Image resize** (`image-processor.ts`) — the uploaded file is drawn onto an `OffscreenCanvas` (or a fallback DOM canvas) at the exact target dimensions using the browser's 2D canvas API. This produces a flat `Uint8ClampedArray` of RGBA pixel values.
+1. **Center-pixel sampling** (`image-processor.ts`) — the uploaded file is drawn onto a full-resolution `OffscreenCanvas` (or DOM canvas fallback). For each target grid cell the single pixel closest to the cell center is sampled rather than averaging the entire cell area. This nearest-neighbor approach preserves hard edges and avoids bilinear blending artifacts where a green→black boundary would otherwise produce an intermediate "dark shadow" color that maps to a different block.
 
-2. **CIELAB color matching** (`color-matcher.ts`) — each pixel is converted from sRGB to CIELAB (via gamma decoding → XYZ with D65 illuminant → L\*a\*b\*) and matched to the nearest allowed block by CIE76 Euclidean distance. Block Lab values are pre-computed and cached on first use. Pixels with alpha < 128 map to air unless a background fill block is set.
+2. **CIELAB color matching** (`color-matcher.ts`) — each sampled pixel is converted from sRGB to CIELAB (gamma decoding → XYZ with D65 illuminant → L\*a\*b\*) and matched to the nearest allowed block by CIE76 Euclidean distance. Block Lab values are pre-computed and cached on first use. Pixels with alpha < 128 map to air unless a background fill block is set.
 
 3. **Litematica bit-packing** (`litematic-generator.ts`) — the block grid is encoded into a `BigInt64Array` using Litematica's spanning bit-pack format: palette indices are packed into 64-bit longs without crossing long boundaries (`bitsPerBlock = max(2, ceil(log2(paletteSize)))`). Air is always palette index 0.
 
@@ -139,35 +142,45 @@ Click **Download .litematic** in the bottom bar. Place the file in your `.minecr
 
 ## Block catalog
 
-The palette is defined in `app/_lib/blocks.ts` as a static array of `MinecraftBlock` records:
+The palette is defined in `app/_lib/blocks.ts`. The file is **auto-generated** — do not edit it manually; run `pnpm run sync-blocks` to regenerate from the latest Mojang assets.
 
 ```typescript
 interface MinecraftBlock {
-  id: string;                       // "minecraft:white_wool"
-  name: string;                     // "White Wool"
-  rgb: [number, number, number];    // [233, 236, 236]
-  category: string;                 // "Wool"
+  id: string;       // "minecraft:white_wool"
+  name: string;     // "White Wool"
+  rgb: [number, number, number]; // average color sampled from the 16×16 texture
+  category: string; // "Wool"
+  texture: string;  // Bedrock PNG stem served from /blocks/{texture}.png; "" for synthetic blocks
 }
 ```
 
-There are approximately 130 blocks across 12 categories:
+The palette contains **49 blocks** across three categories — chosen because they provide the full 16-color Minecraft spectrum with uniform, non-distracting textures:
 
-| Category | Count | Example blocks |
+| Category | Count | Notes |
 |---|---|---|
-| Wool | 16 | white_wool … black_wool |
-| Concrete | 16 | white_concrete … black_concrete |
-| Terracotta | 17 | terracotta, white_terracotta … black_terracotta |
-| Stone | 12 | stone, granite, diorite, andesite, deepslate, calcite … |
-| Wood | 11 | oak_planks … warped_planks |
-| Natural | 7 | sand, red_sand, gravel, dirt, coarse_dirt, clay, mud |
-| Frozen | 4 | snow_block, ice, packed_ice, blue_ice |
-| Mineral | 13 | coal_block, iron_block, gold_block, diamond_block … |
-| Nether | 13 | netherrack, nether_bricks, blackstone, obsidian … |
-| End | 3 | end_stone, purpur_block, end_stone_bricks |
-| Nature | 7 | moss_block, sea_lantern, sponge, melon … |
-| Decorative | 10 | bricks, sandstone, prismarine, glowstone … |
+| Concrete | 16 | All 16 colors; near-zero texture variance (var ≈ 0–1); perfectly flat solid colors |
+| Wool | 16 | All 16 colors; subtle woven texture (var ≈ 35–280) |
+| Terracotta | 17 | All 16 stained colors + plain terracotta; earthy tones (var ≈ 1–5) |
 
-RGB values are approximate average face colors, not texture-sampled. For higher fidelity the palette can be extended or replaced with values derived from actual texture data.
+RGB values are pixel-accurate averages computed by `sharp` from the actual 16×16 Bedrock texture sprite.
+
+### Regenerating the palette
+
+```bash
+# Full refresh — downloads all textures from Mojang/bedrock-samples and regenerates
+pnpm run sync-blocks
+
+# Local-only refresh — reprocesses already-downloaded files, no network needed
+pnpm run regen-blocks
+```
+
+The generation pipeline in `scripts/generate-blocks.mjs` applies three quality filters before writing the palette:
+
+1. **Alpha filter** (`avgAlpha < 230`) — discards transparent/non-solid blocks (leaves, plants, glass)
+2. **Variance filter** (`variance > 800`, bypassed for anchor blocks) — discards visually noisy/patterned blocks whose internal texture would overpower their average color (e.g. cobblestone var ≈ 865, emerald block var ≈ 1286)
+3. **Pattern filter** — skip-list for non-block texture files (directional faces, entity textures, UI elements)
+
+All three material groups (concrete, wool, terracotta) are **anchor blocks** — they bypass the variance and color-deduplication steps so that every color variant is always present in the palette.
 
 ---
 
@@ -177,20 +190,28 @@ RGB values are approximate average face colors, not texture-sampled. For higher 
 minecraft-pixel-art-generator/
 ├── app/
 │   ├── _lib/                           # Core logic — no React dependencies
-│   │   ├── blocks.ts                   # Block palette (~130 blocks, 12 categories)
+│   │   ├── blocks.ts                   # Block palette (49 blocks, auto-generated — do not edit)
 │   │   ├── color-matcher.ts            # CIELAB perceptual color matching
-│   │   ├── image-processor.ts          # OffscreenCanvas image resize + pixel sampling
+│   │   ├── image-processor.ts          # Center-pixel sampling + PNG export
 │   │   ├── nbt.ts                      # Binary NBT encoder (encode-only, all tag types)
 │   │   └── litematic-generator.ts      # .litematic file builder + browser download trigger
 │   ├── _components/                    # React UI components
 │   │   ├── ImageUpload.tsx             # Drag-and-drop / click-to-browse file picker
 │   │   ├── ControlPanel.tsx            # Dimensions, orientation, category filters, generate CTA
-│   │   ├── PixelArtPreview.tsx         # Pan/zoom canvas, grid overlay, original overlay, tooltips
-│   │   ├── SchematicViewer3D.tsx       # Three.js 3D previewer with layer controls (browser-only)
+│   │   ├── PixelArtPreview.tsx         # Pan/zoom/scroll canvas, grid overlay, hover tooltips
+│   │   ├── SchematicViewer3D.tsx       # Three.js 3D previewer with hover tooltips + layer controls
 │   │   └── BlockLegend.tsx             # Sorted material list with CSV export
 │   ├── page.tsx                        # Main page — step tracker, sidebar, preview, download bar
 │   ├── layout.tsx                      # Root layout, metadata, Geist font
 │   └── globals.css                     # Tailwind base + global overrides
+├── public/
+│   └── blocks/                         # 1000+ Bedrock texture PNGs (served as static assets)
+├── scripts/
+│   ├── download-block-textures.mjs     # Downloads textures + computes RGB/alpha/variance stats
+│   ├── generate-blocks.mjs             # Generates app/_lib/blocks.ts from stats JSON
+│   └── generated-blocks.json           # Intermediate artifact (gitignored)
+├── docs/
+│   └── features/                       # Design and implementation notes
 ├── next.config.ts                      # Next.js config (allowedDevOrigins)
 ├── package.json
 ├── pnpm-lock.yaml
@@ -205,7 +226,11 @@ minecraft-pixel-art-generator/
 
 **`nbt.ts`** — A minimal encode-only NBT implementation. `NbtValue` is a TypeScript discriminated union covering all tag types. `NbtWriter` accumulates `Uint8Array` chunks and concatenates at the end to avoid repeated buffer reallocations. All integers are big-endian per the NBT spec.
 
-**`PixelArtPreview.tsx`** — Renders the block grid to a `<canvas>` element with `imageRendering: pixelated`. Pan is implemented via absolute positioning of the canvas inside a clipped viewport div. Zoom adjusts `cellSize` (pixels per block cell) and redraws. The original image overlay is drawn at 40% `globalAlpha` on top of the block colors before grid lines are applied.
+**`image-processor.ts`** — `loadAndResizeImage` renders the source file at native resolution on a full-size canvas, then for each output cell reads the single pixel at the cell's center coordinate. This nearest-neighbor approach avoids bilinear blending so hard edges remain hard in the output. `renderBlockGridToDataUrl` draws the block grid for PNG export, using `drawImage` with the texture sprite when available and falling back to `fillRect` with the block's average RGB.
+
+**`PixelArtPreview.tsx`** — Renders the block grid to a `<canvas>` with `imageRendering: pixelated`. Preloads block texture sprites into an `HTMLImageElement` cache and calls `drawImage` when the sprite is ready. Pan is implemented via absolute positioning inside a clipped viewport div. Zoom (`cellSize`, 2–64 px/cell) is triggered by the +/− buttons or the scroll wheel; wheel zoom is attached as a non-passive native listener so `preventDefault()` suppresses default page scroll. Zoom from buttons centers on the viewport center; scroll zoom centers on the cursor position.
+
+**`SchematicViewer3D.tsx`** — Groups the block grid by block type into `InstancedMesh` objects for efficient rendering. Textures are loaded with `THREE.TextureLoader` and `NearestFilter` for crisp pixel-art cubes. `onPointerMove` / `onPointerOut` events on each `InstancedMesh` feed a `hoverInfo` state that drives a `position: fixed` tooltip overlay identical in style to the 2D preview tooltip.
 
 ---
 
