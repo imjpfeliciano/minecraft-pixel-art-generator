@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
 import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
@@ -10,6 +11,19 @@ import { BLOCK_CATEGORIES, MINECRAFT_BLOCKS, MinecraftBlock } from "./_lib/block
 import { mapPixelsToBlocks } from "./_lib/color-matcher";
 import { loadAndResizeImage } from "./_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "./_lib/litematic-generator";
+
+// Three.js viewer is browser-only — skip SSR entirely
+const SchematicViewer3D = dynamic(
+  () => import("./_components/SchematicViewer3D"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
+        Loading 3D viewer…
+      </div>
+    ),
+  },
+);
 
 // ─── Step tracker ─────────────────────────────────────────────────────────────
 
@@ -111,6 +125,9 @@ export default function Home() {
   const [showOriginalOverlay, setShowOriginalOverlay] = useState(false);
   const [showMaterialList, setShowMaterialList] = useState(false);
 
+  // Preview mode: 2D canvas or 3D schematic viewer
+  const [previewMode, setPreviewMode] = useState<"2d" | "3d">("2d");
+
   // Revoke the final blob URL when the page unmounts (empty deps = runs once).
   useEffect(() => {
     return () => {
@@ -146,6 +163,7 @@ export default function Home() {
     if (!imageFile) return;
     setIsProcessing(true);
     setError(null);
+    setPreviewMode("2d");
     try {
       const allowedBlocks = MINECRAFT_BLOCKS.filter((b) =>
         selectedCategories.has(b.category)
@@ -161,11 +179,12 @@ export default function Home() {
       const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks, fillBlock);
       setBlockGrid(grid);
 
+      const effectiveFoundation = orientation === "horizontal" && foundationEnabled;
       const litematic = generateLitematic(
         grid,
         orientation,
         schematicName,
-        foundationEnabled ? { blockId: foundationBlockId } : undefined
+        effectiveFoundation ? { blockId: foundationBlockId } : undefined
       );
       setLastLitematic(litematic);
 
@@ -331,34 +350,36 @@ export default function Home() {
             </select>
           </section>
 
-          {/* Foundation layer */}
-          <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
-              Foundation Layer
-            </h2>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={foundationEnabled}
-                onChange={(e) => setFoundationEnabled(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 accent-green-500 cursor-pointer"
-              />
-              <span className="text-sm text-zinc-300">Add foundation layer</span>
-            </label>
-            {foundationEnabled && (
-              <select
-                value={foundationBlockId}
-                onChange={(e) => setFoundationBlockId(e.target.value)}
-                className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
-              >
-                <option value="minecraft:stone">Stone</option>
-                <option value="minecraft:smooth_stone">Smooth Stone</option>
-                <option value="minecraft:deepslate">Deepslate</option>
-                <option value="minecraft:obsidian">Obsidian</option>
-                <option value="minecraft:oak_planks">Oak Planks</option>
-              </select>
-            )}
-          </section>
+          {/* Foundation layer — only relevant for horizontal orientation */}
+          {orientation === "horizontal" && (
+            <section>
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+                Foundation Layer
+              </h2>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={foundationEnabled}
+                  onChange={(e) => setFoundationEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 accent-green-500 cursor-pointer"
+                />
+                <span className="text-sm text-zinc-300">Add foundation layer</span>
+              </label>
+              {foundationEnabled && (
+                <select
+                  value={foundationBlockId}
+                  onChange={(e) => setFoundationBlockId(e.target.value)}
+                  className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+                >
+                  <option value="minecraft:stone">Stone</option>
+                  <option value="minecraft:smooth_stone">Smooth Stone</option>
+                  <option value="minecraft:deepslate">Deepslate</option>
+                  <option value="minecraft:obsidian">Obsidian</option>
+                  <option value="minecraft:oak_planks">Oak Planks</option>
+                </select>
+              )}
+            </section>
+          )}
 
           {error && (
             <div className="rounded-xl border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
@@ -387,6 +408,39 @@ export default function Home() {
                         {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
                       </span>
                     )}
+
+                    {/* 2D / 3D view toggle */}
+                    {blockGrid.length > 0 && (
+                      <div className="flex items-center rounded-lg border border-zinc-700 overflow-hidden text-xs font-medium">
+                        <button
+                          onClick={() => {
+                            setPreviewMode("2d");
+                            track("3D Viewer Closed");
+                          }}
+                          className={`px-2.5 py-1 transition-colors ${
+                            previewMode === "2d"
+                              ? "bg-zinc-700 text-zinc-100"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          2D
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPreviewMode("3d");
+                            track("3D Preview Opened", { orientation });
+                          }}
+                          className={`px-2.5 py-1 transition-colors ${
+                            previewMode === "3d"
+                              ? "bg-zinc-700 text-zinc-100"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          3D
+                        </button>
+                      </div>
+                    )}
+
                     {/* Material list toggle — pushed to the right */}
                     {blockGrid.length > 0 && (
                       <button
@@ -419,17 +473,26 @@ export default function Home() {
 
                   {/* Panel body */}
                   <div className="flex-1 overflow-hidden p-4 min-h-0">
-                    <PixelArtPreview
-                      blockGrid={blockGrid}
-                      isLoading={isProcessing}
-                      showGrid={showGrid}
-                      onShowGridChange={setShowGrid}
-                      gridColor={gridColor}
-                      onGridColorChange={setGridColor}
-                      showOriginalOverlay={showOriginalOverlay}
-                      onShowOriginalOverlayChange={setShowOriginalOverlay}
-                      originalImageUrl={imagePreviewUrl}
-                    />
+                    {previewMode === "3d" && blockGrid.length > 0 ? (
+                      <SchematicViewer3D
+                        blockGrid={blockGrid}
+                        orientation={orientation}
+                        foundationEnabled={orientation === "horizontal" && foundationEnabled}
+                        foundationBlockId={foundationBlockId}
+                      />
+                    ) : (
+                      <PixelArtPreview
+                        blockGrid={blockGrid}
+                        isLoading={isProcessing}
+                        showGrid={showGrid}
+                        onShowGridChange={setShowGrid}
+                        gridColor={gridColor}
+                        onGridColorChange={setGridColor}
+                        showOriginalOverlay={showOriginalOverlay}
+                        onShowOriginalOverlayChange={setShowOriginalOverlay}
+                        originalImageUrl={imagePreviewUrl}
+                      />
+                    )}
                   </div>
                 </div>
 

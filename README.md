@@ -19,6 +19,10 @@ A browser-based tool that converts any image into a Minecraft pixel art [Litemat
   - Grid overlay with a custom color picker
   - Original image overlay at 40% opacity for comparison
   - Hover tooltips showing each block's display name and namespaced ID
+- **3D schematic previewer** — toggle from 2D to an interactive Three.js 3D view of the generated schematic:
+  - Drag to rotate (orbit), scroll to zoom, right-drag to pan
+  - Vertical schematics render as a wall on the XY plane; horizontal schematics render as floor art on the XZ plane, with the camera positioned above and angled inward for a natural top-down perspective
+  - **Layer controls** (shown when the schematic has more than one layer): select a layer mode — **All** (show all layers), **Single** (show only the active layer), **Below** (show active layer and below), or **Above** (show active layer and above) — then navigate between individual layers with the ← and → arrows
 - **Material list panel** — collapsible side panel showing all block types sorted by usage count, with block count and percentage; exports to CSV
 - **One-click download** — generates and saves a `.litematic` file compatible with Litematica v6 (Minecraft 1.21.4)
 - **Fully client-side** — all processing runs in the browser; no data leaves your machine
@@ -99,6 +103,11 @@ Once generation completes, the pixel art canvas is shown with the full toolbar:
 - Toggle **Overlay** to blend the original image at 40% opacity over the block art.
 - Hover over any cell to see a tooltip with the block name and ID.
 
+Click the **3D** button in the panel header to switch to the 3D schematic viewer:
+- Rotate by dragging, zoom with the scroll wheel, pan by right-dragging.
+- The camera orientation matches your schematic — vertical art faces you as a wall; horizontal art is viewed from above as floor art.
+- When the schematic has multiple layers, the layer control bar appears at the bottom. Choose a mode (**All / Single / Below / Above**) and use ← / → to step through layers. Click **2D** to return to the flat pixel art view.
+
 **8. Check the material list**
 
 Click **Materials** (top-right of the preview panel) to open the side panel. It shows every block type used, sorted by count, with percentages. Click **Export CSV** to download a spreadsheet-ready file.
@@ -122,7 +131,8 @@ Click **Download .litematic** in the bottom bar. Place the file in your `.minecr
 | Styling | Tailwind CSS 4 |
 | Language | TypeScript 5 |
 | Compression | pako 2 (gzip) |
-| Rendering | Browser Canvas 2D API |
+| 2D Rendering | Browser Canvas 2D API |
+| 3D Rendering | Three.js + React Three Fiber + Drei (browser-only, dynamic import) |
 | Runtime | Fully client-side — no backend |
 
 ---
@@ -176,6 +186,7 @@ minecraft-pixel-art-generator/
 │   │   ├── ImageUpload.tsx             # Drag-and-drop / click-to-browse file picker
 │   │   ├── ControlPanel.tsx            # Dimensions, orientation, category filters, generate CTA
 │   │   ├── PixelArtPreview.tsx         # Pan/zoom canvas, grid overlay, original overlay, tooltips
+│   │   ├── SchematicViewer3D.tsx       # Three.js 3D previewer with layer controls (browser-only)
 │   │   └── BlockLegend.tsx             # Sorted material list with CSV export
 │   ├── page.tsx                        # Main page — step tracker, sidebar, preview, download bar
 │   ├── layout.tsx                      # Root layout, metadata, Geist font
@@ -214,11 +225,13 @@ image-processor     blocks.ts (palette)
              ▼
         color-matcher
              │
-    ┌────────┼─────────────┐
-    ▼        ▼             ▼
-PixelArt  BlockLegend  litematic-generator
-Preview               (nbt.ts + pako)
-                           │
-                           ▼
-                    .litematic download
+    ┌────────┼──────────────────┐
+    ▼        ▼                  ▼
+PixelArt  BlockLegend      litematic-generator
+Preview                    (nbt.ts + pako)
+    │                           │
+    │ (2D/3D toggle)            ▼
+    ▼                    .litematic download
+SchematicViewer3D
+(Three.js, browser-only)
 ```
