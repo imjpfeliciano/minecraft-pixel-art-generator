@@ -389,7 +389,7 @@ function deriveCategory(name) {
   if (COLORS_16.some((c) => name === `wool_colored_${c}`)) return "Wool";
   if (name.startsWith("concrete_") && !name.includes("powder")) return "Concrete";
   if (name.startsWith("concrete_powder_")) return "Concrete Powder";
-  if (name.startsWith("terracotta_") || name === "hardened_clay") return "Terracotta";
+  if (name.startsWith("terracotta_") || name === "hardened_clay" || name.startsWith("hardened_clay_stained_")) return "Terracotta";
   if (WOOD_TYPES.some((w) => name === `planks_${w}` || name === `${w}_planks`)) return "Wood";
   if (["bamboo_planks", "bamboo_block", "bamboo_mosaic"].includes(name)) return "Wood";
   if (["crimson_planks", "warped_planks"].includes(name)) return "Wood";
@@ -649,7 +649,29 @@ function categoryIndex(cat) {
 
 // ── TypeScript file emission ──────────────────────────────────────────────────
 
-function emitBlocksTs(blocks) {
+function emitBlockArray(blocks, varName, comment) {
+  const lines = [];
+  lines.push(`/** ${comment} */`);
+  lines.push(`export const ${varName}: MinecraftBlock[] = [`);
+
+  let currentCategory = null;
+  for (const block of blocks) {
+    if (block.category !== currentCategory) {
+      currentCategory = block.category;
+      lines.push(`  // --- ${currentCategory} ---`);
+    }
+    const [r, g, b] = block.rgb;
+    lines.push(
+      `  { id: ${JSON.stringify(block.id)}, name: ${JSON.stringify(block.name)}, rgb: [${r}, ${g}, ${b}], category: ${JSON.stringify(block.category)}, texture: ${JSON.stringify(block.texture)} },`
+    );
+  }
+
+  lines.push(`];`);
+  lines.push(``);
+  return lines;
+}
+
+function emitBlocksTs(fullCatalog, generationBlocks) {
   const lines = [];
 
   lines.push(`/**`);
@@ -679,30 +701,27 @@ function emitBlocksTs(blocks) {
   lines.push(`  texture: string;`);
   lines.push(`}`);
   lines.push(``);
-  lines.push(`/** Full palette of Minecraft blocks generated from Mojang's bedrock-samples textures. */`);
-  lines.push(`export const MINECRAFT_BLOCKS: MinecraftBlock[] = [`);
-
-  let currentCategory = null;
-  for (const block of blocks) {
-    if (block.category !== currentCategory) {
-      currentCategory = block.category;
-      lines.push(`  // --- ${currentCategory} ---`);
-    }
-    const [r, g, b] = block.rgb;
-    // _isAnchor is an internal pipeline flag — strip it from the TS output
-    lines.push(
-      `  { id: ${JSON.stringify(block.id)}, name: ${JSON.stringify(block.name)}, rgb: [${r}, ${g}, ${b}], category: ${JSON.stringify(block.category)}, texture: ${JSON.stringify(block.texture)} },`
-    );
-  }
-
-  lines.push(`];`);
-  lines.push(``);
+  lines.push(...emitBlockArray(
+    fullCatalog,
+    "MINECRAFT_BLOCKS",
+    "Full catalog of solid blocks — used by the block picker and manual replace flows.",
+  ).split("\n"));
+  lines.push(...emitBlockArray(
+    generationBlocks,
+    "GENERATION_BLOCKS",
+    "Anchor palette (concrete, wool, terracotta) — default blocks for automatic color matching.",
+  ).split("\n"));
   lines.push(`/**`);
   lines.push(` * Deduplicated list of category strings, in the order they first appear in`);
   lines.push(` * \`MINECRAFT_BLOCKS\`. Used to render the category filter buttons in the UI.`);
   lines.push(` */`);
   lines.push(`export const BLOCK_CATEGORIES = Array.from(`);
   lines.push(`  new Set(MINECRAFT_BLOCKS.map((b) => b.category))`);
+  lines.push(`);`);
+  lines.push(``);
+  lines.push(`/** Categories available in the generation anchor palette. */`);
+  lines.push(`export const GENERATION_BLOCK_CATEGORIES = Array.from(`);
+  lines.push(`  new Set(GENERATION_BLOCKS.map((b) => b.category))`);
   lines.push(`);`);
   lines.push(``);
 
@@ -779,25 +798,31 @@ function main() {
   console.log(`  ${skippedPattern} skipped by pattern filter.`);
   console.log(`  ${skippedNull} skipped by explicit null mapping.`);
 
-  // Step 5: keep only anchor blocks (concrete, wool, terracotta)
+  // Step 5: deduplicate full catalog by Java ID, then by perceptual color
+  const idDedupedAll = deduplicateByJavaId(entries);
+  console.log(`  ${entries.length - idDedupedAll.length} duplicate Java IDs removed (full catalog).`);
+
+  const fullCatalog = deduplicateByColor(idDedupedAll);
+  console.log(`  ${idDedupedAll.length - fullCatalog.length} blocks removed by LAB color dedup (ΔE < ${LAB_DEDUP_THRESHOLD}).`);
+
+  // Step 6: generation palette = anchor blocks only (concrete, wool, terracotta)
   const anchorEntries = entries.filter((e) => e._isAnchor);
-  console.log(`  ${entries.length - anchorEntries.length} non-anchor blocks discarded (only concrete/wool/terracotta kept).`);
+  const generationBlocks = deduplicateByJavaId(anchorEntries);
+  console.log(`  ${anchorEntries.length - generationBlocks.length} duplicate Java IDs removed (generation palette).`);
 
-  // Step 6: deduplicate by Java ID (keep first occurrence)
-  const idDeduped = deduplicateByJavaId(anchorEntries);
-  console.log(`  ${anchorEntries.length - idDeduped.length} duplicate Java IDs removed.`);
-
-  // Step 7: restore category sort order for display
-  idDeduped.sort((a, b) => {
+  const sortBlocks = (blocks) => blocks.sort((a, b) => {
     const ci = categoryIndex(a.category) - categoryIndex(b.category);
     if (ci !== 0) return ci;
     return a.name.localeCompare(b.name);
   });
 
-  console.log(`\n${idDeduped.length} blocks in final palette.`);
+  sortBlocks(fullCatalog);
+  sortBlocks(generationBlocks);
 
-  // Step 8: emit TypeScript
-  const ts = emitBlocksTs(idDeduped);
+  console.log(`\n${fullCatalog.length} blocks in full catalog, ${generationBlocks.length} in generation palette.`);
+
+  // Step 7: emit TypeScript
+  const ts = emitBlocksTs(fullCatalog, generationBlocks);
   writeFileSync(OUTPUT_TS, ts);
   console.log(`Wrote ${OUTPUT_TS}`);
 }

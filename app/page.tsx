@@ -7,7 +7,12 @@ import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
 import PixelArtPreview from "./_components/PixelArtPreview";
 import BlockLegend from "./_components/BlockLegend";
-import { BLOCK_CATEGORIES, MINECRAFT_BLOCKS, MinecraftBlock } from "./_lib/blocks";
+import {
+  GENERATION_BLOCK_CATEGORIES,
+  GENERATION_BLOCKS,
+  MINECRAFT_BLOCKS,
+  MinecraftBlock,
+} from "./_lib/blocks";
 import { mapPixelsToBlocks } from "./_lib/color-matcher";
 import { loadAndResizeImage } from "./_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "./_lib/litematic-generator";
@@ -102,7 +107,7 @@ export default function Home() {
   const [height, setHeight] = useState(128);
   const [orientation, setOrientation] = useState<Orientation>("vertical");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
-    new Set(BLOCK_CATEGORIES)
+    new Set(GENERATION_BLOCK_CATEGORIES)
   );
 
   // Output
@@ -265,7 +270,7 @@ export default function Home() {
     setError(null);
     setPreviewMode("2d");
     try {
-      const allowedBlocks = MINECRAFT_BLOCKS.filter((b) =>
+      const allowedBlocks = GENERATION_BLOCKS.filter((b) =>
         selectedCategories.has(b.category)
       );
       if (allowedBlocks.length === 0) {

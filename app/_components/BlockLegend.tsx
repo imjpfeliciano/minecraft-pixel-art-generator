@@ -97,7 +97,6 @@ export default function BlockLegend({ blockGrid, onReplaceBlock }: Props) {
       {replacingBlockId && replacingBlock && onReplaceBlock && (
         <BlockPickerModal
           title={`Replace ${replacingBlock.name}`}
-          initialCategory={replacingBlock.category}
           onSelect={(toBlock) => {
             onReplaceBlock(replacingBlockId, toBlock);
             setReplacingBlockId(null);

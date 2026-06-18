@@ -1,6 +1,6 @@
 "use client";
 
-import { BLOCK_CATEGORIES, MINECRAFT_BLOCKS } from "../_lib/blocks";
+import { GENERATION_BLOCK_CATEGORIES, GENERATION_BLOCKS } from "../_lib/blocks";
 import type { Orientation } from "../_lib/litematic-generator";
 
 interface Props {
@@ -30,9 +30,9 @@ export default function ControlPanel({
   isProcessing,
   hasImage,
 }: Props) {
-  const categoryCounts = BLOCK_CATEGORIES.map((cat) => ({
+  const categoryCounts = GENERATION_BLOCK_CATEGORIES.map((cat) => ({
     cat,
-    count: MINECRAFT_BLOCKS.filter((b) => b.category === cat).length,
+    count: GENERATION_BLOCKS.filter((b) => b.category === cat).length,
   }));
 
   return (
@@ -145,7 +145,7 @@ export default function ControlPanel({
           })}
         </div>
         <p className="text-xs text-zinc-500 mt-2">
-          {MINECRAFT_BLOCKS.filter((b) => selectedCategories.has(b.category)).length} blocks available
+          {GENERATION_BLOCKS.filter((b) => selectedCategories.has(b.category)).length} blocks available
         </p>
       </section>
 
