@@ -128,6 +128,12 @@ export default function Home() {
   // Preview mode: 2D canvas or 3D schematic viewer
   const [previewMode, setPreviewMode] = useState<"2d" | "3d">("2d");
 
+  // Undo stack for block edits
+  const [undoStack, setUndoStack] = useState<
+    Array<{ grid: MinecraftBlock[][]; litematic: Uint8Array | null }>
+  >([]);
+  const MAX_UNDO = 20;
+
   // Revoke the final blob URL when the page unmounts (empty deps = runs once).
   useEffect(() => {
     return () => {
@@ -143,8 +149,102 @@ export default function Home() {
     setImagePreviewUrl(url);
     setBlockGrid([]);
     setLastLitematic(null);
+    setUndoStack([]);
     setError(null);
   }, []);
+
+  const pushUndo = useCallback(
+    (currentGrid: MinecraftBlock[][], currentLitematic: Uint8Array | null) => {
+      setUndoStack((prev) => {
+        const snapshot = {
+          grid: currentGrid.map((row) => row.map((cell) => ({ ...cell }))),
+          litematic: currentLitematic ? new Uint8Array(currentLitematic) : null,
+        };
+        const next = [...prev, snapshot];
+        if (next.length > MAX_UNDO) next.shift();
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleUndo = useCallback(() => {
+    setUndoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const snapshot = prev[prev.length - 1];
+      setBlockGrid(snapshot.grid);
+      setLastLitematic(snapshot.litematic);
+      return prev.slice(0, -1);
+    });
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleUndo]);
+
+  const regenerateLitematic = useCallback(
+    (grid: MinecraftBlock[][]) => {
+      const effectiveFoundation = orientation === "horizontal" && foundationEnabled;
+      return generateLitematic(
+        grid,
+        orientation,
+        schematicName,
+        effectiveFoundation ? { blockId: foundationBlockId } : undefined,
+      );
+    },
+    [orientation, foundationEnabled, foundationBlockId, schematicName],
+  );
+
+  const handleRegionReplace = useCallback(
+    (r1: number, c1: number, r2: number, c2: number, block: MinecraftBlock) => {
+      pushUndo(blockGrid, lastLitematic);
+      setBlockGrid((prev) => {
+        const next = prev.map((row) => [...row]);
+        for (let r = r1; r <= r2; r++) {
+          for (let c = c1; c <= c2; c++) {
+            next[r][c] = block;
+          }
+        }
+        setLastLitematic(regenerateLitematic(next));
+        return next;
+      });
+    },
+    [blockGrid, lastLitematic, pushUndo, regenerateLitematic],
+  );
+
+  const handleBlockPainted = useCallback(
+    (row: number, col: number, block: MinecraftBlock) => {
+      pushUndo(blockGrid, lastLitematic);
+      setBlockGrid((prev) => {
+        const next = prev.map((r) => [...r]);
+        next[row][col] = block;
+        setLastLitematic(regenerateLitematic(next));
+        return next;
+      });
+    },
+    [blockGrid, lastLitematic, pushUndo, regenerateLitematic],
+  );
+
+  const handleReplaceBlock = useCallback(
+    (fromId: string, toBlock: MinecraftBlock) => {
+      pushUndo(blockGrid, lastLitematic);
+      setBlockGrid((prev) => {
+        const next = prev.map((row) =>
+          row.map((cell) => (cell.id === fromId ? toBlock : cell)),
+        );
+        setLastLitematic(regenerateLitematic(next));
+        return next;
+      });
+    },
+    [blockGrid, lastLitematic, pushUndo, regenerateLitematic],
+  );
 
   const handleCategoryToggle = useCallback((cat: string) => {
     setSelectedCategories((prev) => {
@@ -178,6 +278,7 @@ export default function Home() {
         : undefined;
       const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks, fillBlock);
       setBlockGrid(grid);
+      setUndoStack([]);
 
       const effectiveFoundation = orientation === "horizontal" && foundationEnabled;
       const litematic = generateLitematic(
@@ -441,6 +542,20 @@ export default function Home() {
                       </div>
                     )}
 
+                    {undoStack.length > 0 && (
+                      <button
+                        onClick={handleUndo}
+                        className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                        title="Undo (Ctrl+Z)"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M3 8h7a3 3 0 100-6H7" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M6 5L3 8l3 3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Undo
+                      </button>
+                    )}
+
                     {/* Material list toggle — pushed to the right */}
                     {blockGrid.length > 0 && (
                       <button
@@ -491,6 +606,8 @@ export default function Home() {
                         showOriginalOverlay={showOriginalOverlay}
                         onShowOriginalOverlayChange={setShowOriginalOverlay}
                         originalImageUrl={imagePreviewUrl}
+                        onBlocksReplaced={handleRegionReplace}
+                        onBlockPainted={handleBlockPainted}
                       />
                     )}
                   </div>
@@ -517,7 +634,10 @@ export default function Home() {
 
                     {/* Scrollable list */}
                     <div className="flex-1 overflow-y-auto min-h-0">
-                      <BlockLegend blockGrid={blockGrid} />
+                      <BlockLegend
+                        blockGrid={blockGrid}
+                        onReplaceBlock={handleReplaceBlock}
+                      />
                     </div>
                   </div>
                 )}

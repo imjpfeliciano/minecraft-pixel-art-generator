@@ -1,16 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { track } from "@vercel/analytics";
 import type { MinecraftBlock } from "../_lib/blocks";
+import BlockPickerModal, { BlockIcon } from "./BlockPickerModal";
 
 interface Props {
   blockGrid: MinecraftBlock[][];
+  onReplaceBlock?: (fromId: string, toBlock: MinecraftBlock) => void;
 }
 
-export default function BlockLegend({ blockGrid }: Props) {
+export default function BlockLegend({ blockGrid, onReplaceBlock }: Props) {
+  const [replacingBlockId, setReplacingBlockId] = useState<string | null>(null);
+
   if (blockGrid.length === 0) return null;
 
-  // Count usage per block
   const counts = new Map<string, { block: MinecraftBlock; count: number }>();
   for (const row of blockGrid) {
     for (const block of row) {
@@ -26,6 +30,10 @@ export default function BlockLegend({ blockGrid }: Props) {
 
   const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
   const total = sorted.reduce((s, e) => s + e.count, 0);
+
+  const replacingBlock = replacingBlockId
+    ? sorted.find(({ block }) => block.id === replacingBlockId)?.block
+    : undefined;
 
   const handleDownloadCsv = () => {
     const header = "Block Name,Block ID,Count,Percentage";
@@ -64,10 +72,7 @@ export default function BlockLegend({ blockGrid }: Props) {
       <div className="divide-y divide-zinc-800">
         {sorted.map(({ block, count }) => (
           <div key={block.id} className="flex items-center gap-3 px-4 py-2.5">
-            <span
-              className="w-5 h-5 rounded flex-shrink-0 border border-zinc-600"
-              style={{ backgroundColor: `rgb(${block.rgb[0]},${block.rgb[1]},${block.rgb[2]})` }}
-            />
+            <BlockIcon block={block} size={20} />
             <div className="flex-1 min-w-0">
               <p className="text-xs text-zinc-200 font-medium truncate">{block.name}</p>
               <p className="text-xs text-zinc-500 truncate">{block.id}</p>
@@ -76,9 +81,30 @@ export default function BlockLegend({ blockGrid }: Props) {
               <p className="text-xs font-semibold text-zinc-200">{count.toLocaleString()}</p>
               <p className="text-xs text-zinc-500">{((count / total) * 100).toFixed(1)}%</p>
             </div>
+            {onReplaceBlock && (
+              <button
+                onClick={() => setReplacingBlockId(block.id)}
+                className="flex-shrink-0 rounded-lg border border-zinc-700 px-2 py-1 text-[10px] font-medium text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+                title={`Replace all ${block.name}`}
+              >
+                Replace
+              </button>
+            )}
           </div>
         ))}
       </div>
+
+      {replacingBlockId && replacingBlock && onReplaceBlock && (
+        <BlockPickerModal
+          title={`Replace ${replacingBlock.name}`}
+          initialCategory={replacingBlock.category}
+          onSelect={(toBlock) => {
+            onReplaceBlock(replacingBlockId, toBlock);
+            setReplacingBlockId(null);
+          }}
+          onClose={() => setReplacingBlockId(null)}
+        />
+      )}
     </div>
   );
 }
