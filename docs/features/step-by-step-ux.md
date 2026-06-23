@@ -128,7 +128,7 @@ The original image panel never changes after upload — it always shows the sour
 
 **During generate (`isProcessing = true`):** Shows a pulsing skeleton overlay — a grid of gray squares that animate with a shimmer effect to communicate processing activity.
 
-**After generate:** Shows `PixelArtPreview` with its zoom controls and hover tooltips.
+**After generate:** Shows `PixelArtPreview` with its zoom controls, **Compare** slider, and hover tooltips.
 
 ---
 
@@ -255,18 +255,30 @@ Props to remove (moved into `ControlPanel`):
 
 ---
 
-### 3.2 `PixelArtPreview` — new prop *(implemented)*
+### 3.2 `PixelArtPreview` — props *(implemented)*
 
 Props interface:
 
 ```ts
 interface Props {
   blockGrid: MinecraftBlock[][];
-  isLoading?: boolean;  // default: false
+  isLoading?: boolean;           // default: false
+  showGrid: boolean;
+  onShowGridChange: (v: boolean) => void;
+  gridColor: string;
+  onGridColorChange: (v: string) => void;
+  compareEnabled: boolean;
+  onCompareEnabledChange: (v: boolean) => void;
+  originalImageUrl: string | null;
+  onBlocksReplaced?: (r1, c1, r2, c2, block) => void;
+  onBlockPicked?: (block: MinecraftBlock) => void;
+  onBlockPainted?: (row, col, block) => void;
 }
 ```
 
 When `isLoading` is `true`, a pulsing gradient skeleton overlay replaces the canvas, displaying a spinning icon and "Generating pixel art…" message. The internal `"No preview yet"` empty state has been removed — the parent panel layout manages the pre-generate empty state.
+
+Post-generate comparison uses the **Compare** toolbar toggle. See [Image Comparison Slider](./image-comparison-slider.md) for the full UX spec, architecture, and analytics events.
 
 ---
 
@@ -368,3 +380,9 @@ Unlike the litematic (which is pre-built on generate), the PNG is rendered on do
 ### Litematic pre-build invalidation
 
 Currently, `lastLitematic` is computed on generate and cached until re-generate. With the new output format selection, the cached litematic should be invalidated (set to `null`) when `orientation` or `schematicName` changes — not just when a new image is uploaded. This prevents stale downloads.
+
+---
+
+## Related Docs
+
+- [Image Comparison Slider](./image-comparison-slider.md) — post-generate original-vs-result comparison inside `PixelArtPreview` (replaces the previous 40% opacity overlay). After generation the Original panel is hidden; users toggle **Compare** in the 2D toolbar to drag a divider between the uploaded source and the block art.

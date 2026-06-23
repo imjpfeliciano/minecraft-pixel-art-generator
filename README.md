@@ -18,7 +18,7 @@ A browser-based tool that converts any image into a Minecraft pixel art [Litemat
   - Pan by clicking and dragging
   - Zoom in/out with **+/−** controls, **scroll wheel**, or **trackpad pinch** (zoom centers on cursor)
   - Grid overlay with a custom color picker
-  - Original image overlay at 40% opacity for comparison
+  - Original image comparison slider (before/after divider)
   - Hover tooltips showing each block's display name and namespaced ID
 - **3D schematic previewer** — toggle from 2D to an interactive Three.js 3D view of the generated schematic:
   - Drag to rotate (orbit), scroll to zoom, right-drag to pan
@@ -103,7 +103,7 @@ Click **Generate Pixel Art**. The canvas shows a loading animation while the ima
 Once generation completes, the pixel art canvas is shown with the full toolbar:
 - Drag to pan; use **+** / **−** to zoom.
 - Toggle **Grid** to draw cell boundaries; pick a grid color with the color swatch.
-- Toggle **Overlay** to blend the original image at 40% opacity over the block art.
+- Toggle **Compare** to reveal the original image side-by-side with the block art. Drag the divider left or right — or focus it and use **←** / **→** — to inspect pixel-level fidelity.
 - Hover over any cell to see a tooltip with the block name and ID.
 
 Click the **3D** button in the panel header to switch to the 3D schematic viewer:
@@ -198,7 +198,8 @@ minecraft-pixel-art-generator/
 │   ├── _components/                    # React UI components
 │   │   ├── ImageUpload.tsx             # Drag-and-drop / click-to-browse file picker
 │   │   ├── ControlPanel.tsx            # Dimensions, orientation, category filters, generate CTA
-│   │   ├── PixelArtPreview.tsx         # Pan/zoom/scroll canvas, grid overlay, hover tooltips
+│   │   ├── PixelArtPreview.tsx         # Pan/zoom canvas, grid, compare slider, hover tooltips
+│   │   ├── ComparisonDivider.tsx       # Draggable before/after divider for Compare mode
 │   │   ├── SchematicViewer3D.tsx       # Three.js 3D previewer with hover tooltips + layer controls
 │   │   └── BlockLegend.tsx             # Sorted material list with CSV export
 │   ├── page.tsx                        # Main page — step tracker, sidebar, preview, download bar
@@ -228,7 +229,7 @@ minecraft-pixel-art-generator/
 
 **`image-processor.ts`** — `loadAndResizeImage` renders the source file at native resolution on a full-size canvas, then for each output cell reads the single pixel at the cell's center coordinate. This nearest-neighbor approach avoids bilinear blending so hard edges remain hard in the output. `renderBlockGridToDataUrl` draws the block grid for PNG export, using `drawImage` with the texture sprite when available and falling back to `fillRect` with the block's average RGB.
 
-**`PixelArtPreview.tsx`** — Renders the block grid to a `<canvas>` with `imageRendering: pixelated`. Preloads block texture sprites into an `HTMLImageElement` cache and calls `drawImage` when the sprite is ready. Pan is implemented via absolute positioning inside a clipped viewport div. Zoom (`cellSize`, 2–64 px/cell) is triggered by the +/− buttons or the scroll wheel; wheel zoom is attached as a non-passive native listener so `preventDefault()` suppresses default page scroll. Zoom from buttons centers on the viewport center; scroll zoom centers on the cursor position.
+**`PixelArtPreview.tsx`** — Renders the block grid to a `<canvas>` with `imageRendering: pixelated`. Preloads block texture sprites into an `HTMLImageElement` cache and calls `drawImage` when the sprite is ready. Pan is implemented via absolute positioning inside a clipped viewport div. Zoom (`cellSize`, 2–64 px/cell) is triggered by the +/− buttons or the scroll wheel; wheel zoom is attached as a non-passive native listener so `preventDefault()` suppresses default page scroll. Zoom from buttons centers on the viewport center; scroll zoom centers on the cursor position. **Compare mode** stacks a second canvas with the original image underneath and clips the result canvas from the left; `ComparisonDivider` provides a draggable handle and keyboard control. Select/Pick editor modes are disabled while Compare is active.
 
 **`SchematicViewer3D.tsx`** — Groups the block grid by block type into `InstancedMesh` objects for efficient rendering. Textures are loaded with `THREE.TextureLoader` and `NearestFilter` for crisp pixel-art cubes. `onPointerMove` / `onPointerOut` events on each `InstancedMesh` feed a `hoverInfo` state that drives a `position: fixed` tooltip overlay identical in style to the 2D preview tooltip.
 

@@ -127,7 +127,7 @@ export default function Home() {
   // Result view tools
   const [showGrid, setShowGrid] = useState(false);
   const [gridColor, setGridColor] = useState("#ffffff");
-  const [showOriginalOverlay, setShowOriginalOverlay] = useState(false);
+  const [compareEnabled, setCompareEnabled] = useState(false);
   const [showMaterialList, setShowMaterialList] = useState(false);
 
   // Preview mode: 2D canvas or 3D schematic viewer
@@ -608,8 +608,8 @@ export default function Home() {
                         onShowGridChange={setShowGrid}
                         gridColor={gridColor}
                         onGridColorChange={setGridColor}
-                        showOriginalOverlay={showOriginalOverlay}
-                        onShowOriginalOverlayChange={setShowOriginalOverlay}
+                        compareEnabled={compareEnabled}
+                        onCompareEnabledChange={setCompareEnabled}
                         originalImageUrl={imagePreviewUrl}
                         onBlocksReplaced={handleRegionReplace}
                         onBlockPainted={handleBlockPainted}

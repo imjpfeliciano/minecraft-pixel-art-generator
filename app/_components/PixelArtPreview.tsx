@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@vercel/analytics";
 import type { MinecraftBlock } from "../_lib/blocks";
 import BlockPickerModal, { BlockIcon } from "./BlockPickerModal";
+import ComparisonDivider from "./ComparisonDivider";
 
 type EditorMode = "pan" | "select" | "pick";
 
@@ -14,8 +15,8 @@ interface Props {
   onShowGridChange: (v: boolean) => void;
   gridColor: string;
   onGridColorChange: (v: string) => void;
-  showOriginalOverlay: boolean;
-  onShowOriginalOverlayChange: (v: boolean) => void;
+  compareEnabled: boolean;
+  onCompareEnabledChange: (v: boolean) => void;
   originalImageUrl: string | null;
   onBlocksReplaced?: (
     r1: number,
@@ -45,6 +46,16 @@ function getCellFromEvent(
   return null;
 }
 
+function isOnResultSide(
+  e: React.MouseEvent,
+  canvas: HTMLCanvasElement,
+  splitPercent: number,
+): boolean {
+  const rect = canvas.getBoundingClientRect();
+  const splitX = rect.left + (splitPercent / 100) * rect.width;
+  return e.clientX >= splitX;
+}
+
 function normalizeSelection(
   start: { row: number; col: number },
   end: { row: number; col: number },
@@ -64,19 +75,22 @@ export default function PixelArtPreview({
   onShowGridChange,
   gridColor,
   onGridColorChange,
-  showOriginalOverlay,
-  onShowOriginalOverlayChange,
+  compareEnabled,
+  onCompareEnabledChange,
   originalImageUrl,
   onBlocksReplaced,
   onBlockPicked,
   onBlockPainted,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const overlayImgRef = useRef<HTMLImageElement | null>(null);
+  const originalImgRef = useRef<HTMLImageElement | null>(null);
   const textureCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const previousEditorModeRef = useRef<EditorMode>("pan");
 
   const [cellSize, setCellSize] = useState(6);
+  const [splitPercent, setSplitPercent] = useState(50);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; block: MinecraftBlock } | null>(null);
   const [texturesVersion, setTexturesVersion] = useState(0);
 
@@ -134,6 +148,8 @@ export default function PixelArtPreview({
 
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
+  const canvasW = cols * cellSize;
+  const canvasH = rows * cellSize;
 
   const clearSelection = useCallback(() => {
     setSelStart(null);
@@ -154,6 +170,38 @@ export default function PixelArtPreview({
       setShowPicker(true);
     },
     [activeBrush, onBlocksReplaced, clearSelection],
+  );
+
+  const handleCompareToggle = useCallback(() => {
+    const next = !compareEnabled;
+    track("Compare Toggled", {
+      enabled: next,
+      cols,
+      rows,
+      grid_enabled: showGrid,
+      ...(next ? {} : { final_split: Math.round(splitPercent) }),
+    });
+    if (next) {
+      previousEditorModeRef.current = editorMode;
+      setEditorMode("pan");
+      clearSelection();
+      setSplitPercent(50);
+    } else {
+      setEditorMode(previousEditorModeRef.current);
+    }
+    onCompareEnabledChange(next);
+  }, [compareEnabled, editorMode, clearSelection, onCompareEnabledChange, cols, rows, showGrid, splitPercent]);
+
+  const handleCompareSplitCommit = useCallback(
+    (split: number, method: "drag" | "keyboard") => {
+      track("Compare Split Changed", {
+        split: Math.round(split),
+        method,
+        cols,
+        rows,
+      });
+    },
+    [cols, rows],
   );
 
   useEffect(() => {
@@ -193,19 +241,26 @@ export default function PixelArtPreview({
 
   useEffect(() => {
     if (!originalImageUrl) {
-      overlayImgRef.current = null;
+      originalImgRef.current = null;
       return;
     }
     const img = new Image();
     img.onload = () => {
-      overlayImgRef.current = img;
-      const canvas = canvasRef.current;
+      originalImgRef.current = img;
+      const canvas = originalCanvasRef.current;
       if (!canvas || rows === 0 || cols === 0) return;
-      drawCanvas(canvas, blockGrid, rows, cols, cellSize, showGrid, gridColor, showOriginalOverlay, img, textureCacheRef.current);
+      drawOriginalCanvas(canvas, img, cols * cellSize, rows * cellSize);
     };
     img.src = originalImageUrl;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [originalImageUrl]);
+  }, [originalImageUrl, cellSize, rows, cols]);
+
+  useEffect(() => {
+    if (!compareEnabled || !originalImgRef.current) return;
+    const canvas = originalCanvasRef.current;
+    if (!canvas || rows === 0 || cols === 0) return;
+    drawOriginalCanvas(canvas, originalImgRef.current, cols * cellSize, rows * cellSize);
+  }, [compareEnabled, cellSize, rows, cols]);
 
   useEffect(() => {
     if (!viewportRef.current || rows === 0 || cols === 0) return;
@@ -215,11 +270,11 @@ export default function PixelArtPreview({
     const fitH = Math.floor(availH / rows);
     const fit = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.min(fitW, fitH)));
     setCellSize(fit);
-    const canvasW = cols * fit;
-    const canvasH = rows * fit;
+    const fitCanvasW = cols * fit;
+    const fitCanvasH = rows * fit;
     setOffset({
-      x: Math.max(0, (clientWidth - canvasW) / 2),
-      y: Math.max(0, (clientHeight - canvasH) / 2),
+      x: Math.max(0, (clientWidth - fitCanvasW) / 2),
+      y: Math.max(0, (clientHeight - fitCanvasH) / 2),
     });
     clearSelection();
     setActiveBrush(null);
@@ -236,12 +291,10 @@ export default function PixelArtPreview({
       cellSize,
       showGrid,
       gridColor,
-      showOriginalOverlay,
-      overlayImgRef.current,
       textureCacheRef.current,
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockGrid, cellSize, rows, cols, showGrid, gridColor, showOriginalOverlay, texturesVersion]);
+  }, [blockGrid, cellSize, rows, cols, showGrid, gridColor, texturesVersion]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -303,6 +356,10 @@ export default function PixelArtPreview({
       }
 
       if (editorMode !== "pan" || !canvas || rows === 0) return;
+      if (compareEnabled && !isOnResultSide(e, canvas, splitPercent)) {
+        setTooltip(null);
+        return;
+      }
       const cell = getCellFromEvent(e, canvas, cellSize, rows, cols);
       if (cell) {
         setTooltip({ x: e.clientX, y: e.clientY, block: blockGrid[cell.row][cell.col] });
@@ -310,7 +367,7 @@ export default function PixelArtPreview({
         setTooltip(null);
       }
     },
-    [blockGrid, cellSize, cols, rows, editorMode],
+    [blockGrid, cellSize, cols, rows, editorMode, compareEnabled, splitPercent],
   );
 
   const stopDrag = useCallback(
@@ -418,20 +475,24 @@ export default function PixelArtPreview({
             <button
               key={mode}
               onClick={() => {
+                if (compareEnabled) return;
                 setEditorMode(mode);
                 clearSelection();
               }}
-              className={`px-2.5 py-1 transition-colors capitalize ${
+              disabled={compareEnabled}
+              className={`px-2.5 py-1 transition-colors capitalize disabled:opacity-30 disabled:cursor-not-allowed ${
                 editorMode === mode
                   ? "bg-zinc-700 text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-300"
               }`}
               title={
-                mode === "pan"
-                  ? "Pan and zoom"
-                  : mode === "select"
-                    ? "Select region to replace or fill"
-                    : "Pick block as brush"
+                compareEnabled
+                  ? "Exit Compare mode to use Select or Pick"
+                  : mode === "pan"
+                    ? "Pan and zoom"
+                    : mode === "select"
+                      ? "Select region to replace or fill"
+                      : "Pick block as brush"
               }
             >
               {mode === "pick" ? "Pick" : mode === "select" ? "Select" : "Pan"}
@@ -483,17 +544,17 @@ export default function PixelArtPreview({
         )}
 
         <button
-          onClick={() => { track("Overlay Toggled", { enabled: !showOriginalOverlay }); onShowOriginalOverlayChange(!showOriginalOverlay); }}
+          onClick={handleCompareToggle}
           disabled={!originalImageUrl}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-            showOriginalOverlay
+            compareEnabled
               ? "border-blue-500 bg-blue-500/15 text-blue-400"
               : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
           }`}
-          title="Overlay original image"
+          title="Compare original and result"
         >
-          <OverlayIcon active={showOriginalOverlay} />
-          Overlay
+          <CompareIcon active={compareEnabled} />
+          Compare
         </button>
       </div>
 
@@ -512,12 +573,38 @@ export default function PixelArtPreview({
             left: offset.x,
             top: offset.y,
             willChange: "transform",
+            width: compareEnabled ? canvasW : undefined,
+            height: compareEnabled ? canvasH : undefined,
           }}
         >
+          {compareEnabled && (
+            <canvas
+              ref={originalCanvasRef}
+              style={{ imageRendering: "pixelated", display: "block" }}
+            />
+          )}
+
           <canvas
             ref={canvasRef}
-            style={{ imageRendering: "pixelated", display: "block" }}
+            style={{
+              imageRendering: "pixelated",
+              display: "block",
+              clipPath: compareEnabled ? `inset(0 0 0 ${splitPercent}%)` : undefined,
+              position: compareEnabled ? "absolute" : "relative",
+              top: 0,
+              left: 0,
+            }}
           />
+
+          {compareEnabled && (
+            <ComparisonDivider
+              splitPercent={splitPercent}
+              width={canvasW}
+              height={canvasH}
+              onSplitChange={setSplitPercent}
+              onSplitCommit={handleCompareSplitCommit}
+            />
+          )}
         </div>
 
         {selectionRect && (
@@ -564,6 +651,19 @@ export default function PixelArtPreview({
   );
 }
 
+function drawOriginalCanvas(
+  canvas: HTMLCanvasElement,
+  originalImg: HTMLImageElement,
+  width: number,
+  height: number,
+) {
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(originalImg, 0, 0, width, height);
+}
+
 function drawCanvas(
   canvas: HTMLCanvasElement,
   blockGrid: MinecraftBlock[][],
@@ -572,8 +672,6 @@ function drawCanvas(
   cellSize: number,
   showGrid: boolean,
   gridColor: string,
-  showOriginalOverlay: boolean,
-  overlayImg: HTMLImageElement | null,
   textureCache: Map<string, HTMLImageElement>,
 ) {
   canvas.width = cols * cellSize;
@@ -596,12 +694,6 @@ function drawCanvas(
         ctx.fillRect(x, y, cellSize, cellSize);
       }
     }
-  }
-
-  if (showOriginalOverlay && overlayImg) {
-    ctx.globalAlpha = 0.4;
-    ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
-    ctx.globalAlpha = 1;
   }
 
   if (showGrid) {
@@ -640,7 +732,7 @@ function GridIcon({ active }: { active: boolean }) {
   );
 }
 
-function OverlayIcon({ active }: { active: boolean }) {
+function CompareIcon({ active }: { active: boolean }) {
   return (
     <svg
       className={`w-3.5 h-3.5 ${active ? "text-blue-400" : "text-zinc-500"}`}
@@ -649,8 +741,10 @@ function OverlayIcon({ active }: { active: boolean }) {
       stroke="currentColor"
       strokeWidth="1.5"
     >
-      <rect x="1" y="1" width="9" height="9" rx="1" />
-      <rect x="6" y="6" width="9" height="9" rx="1" opacity="0.6" />
+      <rect x="1" y="2" width="6" height="12" rx="1" />
+      <rect x="9" y="2" width="6" height="12" rx="1" />
+      <path d="M7 8h2" strokeLinecap="round" />
+      <path d="M6.5 6.5L7 8l-.5 1.5M9.5 6.5L9 8l.5 1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -664,7 +758,7 @@ function ToolbarSkeleton() {
       <button className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">+</button>
       <div className="w-px h-4 bg-zinc-700" />
       <div className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500">Grid</div>
-      <div className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500">Overlay</div>
+      <div className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500">Compare</div>
     </div>
   );
 }
