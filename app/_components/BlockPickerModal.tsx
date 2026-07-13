@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BLOCK_CATEGORIES, MINECRAFT_BLOCKS, MinecraftBlock } from "../_lib/blocks";
 
 export function BlockIcon({
@@ -43,8 +44,6 @@ export function BlockIcon({
   );
 }
 
-const ALL_CATEGORY = "All";
-
 interface BlockPickerModalProps {
   onSelect: (block: MinecraftBlock) => void;
   onClose: () => void;
@@ -54,14 +53,18 @@ interface BlockPickerModalProps {
 export default function BlockPickerModal({
   onSelect,
   onClose,
-  title = "Choose block",
+  title,
 }: BlockPickerModalProps) {
+  const t = useTranslations("BlockPickerModal");
   const searchRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState(ALL_CATEGORY);
+  // null = "All categories"; a string = a specific category name
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const allLabel = t("categoryAll");
   const pickerCategories = useMemo(
-    () => [ALL_CATEGORY, ...BLOCK_CATEGORIES],
-    [],
+    () => [allLabel, ...BLOCK_CATEGORIES],
+    [allLabel],
   );
 
   useEffect(() => {
@@ -79,14 +82,14 @@ export default function BlockPickerModal({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return MINECRAFT_BLOCKS.filter((b) => {
-      if (category !== ALL_CATEGORY && b.category !== category) return false;
+      if (selectedCategory !== null && b.category !== selectedCategory) return false;
       if (!q) return true;
       return (
         b.name.toLowerCase().includes(q) ||
         b.id.toLowerCase().includes(q)
       );
     });
-  }, [category, search]);
+  }, [selectedCategory, search]);
 
   return (
     <div
@@ -98,11 +101,13 @@ export default function BlockPickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+            {title ?? t("defaultTitle")}
+          </h3>
           <button
             onClick={onClose}
             className="text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
-            title="Close"
+            title={t("closeButton")}
           >
             <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" />
@@ -116,7 +121,7 @@ export default function BlockPickerModal({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search blocks…"
+            placeholder={t("searchPlaceholder")}
             className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:border-green-500 focus:outline-none"
           />
         </div>
@@ -124,26 +129,30 @@ export default function BlockPickerModal({
         <div className="flex flex-1 min-h-0">
           <nav
             className="w-40 flex-shrink-0 border-r border-gray-100 dark:border-zinc-800 overflow-y-auto py-1"
-            aria-label="Block categories"
+            aria-label={t("categoriesAriaLabel")}
           >
-            {pickerCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
-                  category === cat
-                    ? "bg-green-600/20 text-green-600 dark:text-green-400 border-r-2 border-green-500"
-                    : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 hover:bg-gray-100/60 dark:hover:bg-zinc-800/60 border-r-2 border-transparent"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+            {pickerCategories.map((cat, i) => {
+              const isAll = i === 0;
+              const isActive = isAll ? selectedCategory === null : selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(isAll ? null : cat)}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                    isActive
+                      ? "bg-green-600/20 text-green-600 dark:text-green-400 border-r-2 border-green-500"
+                      : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 hover:bg-gray-100/60 dark:hover:bg-zinc-800/60 border-r-2 border-transparent"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="flex-1 overflow-y-auto p-3 min-h-0 min-w-0">
             {filtered.length === 0 ? (
-              <p className="text-xs text-gray-400 dark:text-zinc-500 text-center py-8">No blocks match your search.</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 text-center py-8">{t("noResults")}</p>
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2">
                 {filtered.map((block) => (

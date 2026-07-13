@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -51,6 +52,7 @@ function computeGroups(
   foundationEnabled: boolean,
   layerMode: LayerMode,
   activeLayer: number,
+  foundationName: string,
 ): BlockGroup[] {
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
@@ -93,7 +95,7 @@ function computeGroups(
     }
     // Foundation: a single row at y=-1 along the X axis, spanning all columns.
     if (foundationEnabled) {
-      const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: "Foundation" };
+      const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: foundationName };
       for (let col = 0; col < cols; col++) {
         add(fbk, col, -1, 0);
       }
@@ -113,7 +115,7 @@ function computeGroups(
       }
     };
 
-    const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: "Foundation" };
+    const fbk = { texture: "", rgb: FOUNDATION_RGB, id: "foundation", name: foundationName };
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         if (foundationEnabled && isYVisible(-1)) {
@@ -217,6 +219,7 @@ function Scene({
   activeLayer,
   target,
   onHover,
+  foundationName,
 }: {
   blockGrid: MinecraftBlock[][];
   orientation: Orientation;
@@ -225,13 +228,14 @@ function Scene({
   activeLayer: number;
   target: [number, number, number];
   onHover: (info: HoverInfo | null) => void;
+  foundationName: string;
 }) {
   const cols = blockGrid[0]?.length ?? 0;
   const rows = blockGrid.length;
 
   const groups = useMemo(
-    () => computeGroups(blockGrid, orientation, foundationEnabled, layerMode, activeLayer),
-    [blockGrid, orientation, foundationEnabled, layerMode, activeLayer],
+    () => computeGroups(blockGrid, orientation, foundationEnabled, layerMode, activeLayer, foundationName),
+    [blockGrid, orientation, foundationEnabled, layerMode, activeLayer, foundationName],
   );
 
   return (
@@ -262,18 +266,19 @@ function Scene({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-const LAYER_MODES: { mode: LayerMode; label: string }[] = [
-  { mode: "all",    label: "All"    },
-  { mode: "single", label: "Single" },
-  { mode: "below",  label: "Below"  },
-  { mode: "above",  label: "Above"  },
-];
-
 export default function SchematicViewer3D({
   blockGrid,
   orientation,
   foundationEnabled = false,
 }: SchematicViewer3DProps) {
+  const t = useTranslations("SchematicViewer3D");
+
+  const LAYER_MODES: { mode: LayerMode; label: string }[] = [
+    { mode: "all",    label: t("layerModeAll")    },
+    { mode: "single", label: t("layerModeSingle") },
+    { mode: "below",  label: t("layerModeBelow")  },
+    { mode: "above",  label: t("layerModeAbove")  },
+  ];
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
   // Vertical: one layer per image row (Y levels 0..rows-1).
@@ -342,6 +347,7 @@ export default function SchematicViewer3D({
           activeLayer={activeLayer}
           target={target}
           onHover={setHoverInfo}
+          foundationName={t("foundationName")}
         />
       </Canvas>
 
@@ -375,17 +381,17 @@ export default function SchematicViewer3D({
                 <button
                   onClick={prevLayer}
                   className="w-7 h-7 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-sm"
-                  aria-label="Previous layer"
+                  aria-label={t("prevLayer")}
                 >
                   ←
                 </button>
                 <span className="text-xs text-zinc-300 tabular-nums w-20 text-center select-none">
-                  Layer {activeLayer} / {totalLayers}
+                  {t("layerCounter", { current: activeLayer, total: totalLayers })}
                 </span>
                 <button
                   onClick={nextLayer}
                   className="w-7 h-7 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-sm"
-                  aria-label="Next layer"
+                  aria-label={t("nextLayer")}
                 >
                   →
                 </button>
@@ -397,10 +403,10 @@ export default function SchematicViewer3D({
 
       {/* Controls hint */}
       <div className="absolute top-3 right-3 text-[10px] text-zinc-500 leading-relaxed text-right pointer-events-none select-none">
-        <p>Drag to rotate</p>
-        <p>Scroll to zoom</p>
-        <p>Right-drag to pan</p>
-        <p>Hover to inspect</p>
+        <p>{t("hintRotate")}</p>
+        <p>{t("hintZoom")}</p>
+        <p>{t("hintPan")}</p>
+        <p>{t("hintInspect")}</p>
       </div>
 
       {/* Block hover tooltip — mirrors the 2D preview style */}

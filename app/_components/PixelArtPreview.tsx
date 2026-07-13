@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { track } from "@vercel/analytics";
 import type { MinecraftBlock } from "../_lib/blocks";
 import BlockPickerModal, { BlockIcon } from "./BlockPickerModal";
@@ -82,6 +83,7 @@ export default function PixelArtPreview({
   onBlockPicked,
   onBlockPainted,
 }: Props) {
+  const t = useTranslations("PixelArtPreview");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -437,7 +439,7 @@ export default function PixelArtPreview({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            <span className="text-sm">Generating pixel art…</span>
+            <span className="text-sm">{t("generatingText")}</span>
           </div>
         </div>
       </div>
@@ -451,7 +453,7 @@ export default function PixelArtPreview({
 
       <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-zinc-400">Zoom</span>
+          <span className="text-xs text-gray-500 dark:text-zinc-400">{t("zoomLabel")}</span>
           <button
             onClick={() => handleZoom(-1)}
             className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
@@ -480,22 +482,22 @@ export default function PixelArtPreview({
                 clearSelection();
               }}
               disabled={compareEnabled}
-              className={`px-2.5 py-1 transition-colors capitalize disabled:opacity-30 disabled:cursor-not-allowed ${
+              className={`px-2.5 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                 editorMode === mode
                   ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
                   : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
               }`}
               title={
                 compareEnabled
-                  ? "Exit Compare mode to use Select or Pick"
+                  ? t("compareModeLock")
                   : mode === "pan"
-                    ? "Pan and zoom"
+                    ? t("panTooltip")
                     : mode === "select"
-                      ? "Select region to replace or fill"
-                      : "Pick block as brush"
+                      ? t("selectTooltip")
+                      : t("pickTooltip")
               }
             >
-              {mode === "pick" ? "Pick" : mode === "select" ? "Select" : "Pan"}
+              {mode === "pick" ? t("modePick") : mode === "select" ? t("modeSelect") : t("modePan")}
             </button>
           ))}
         </div>
@@ -507,7 +509,7 @@ export default function PixelArtPreview({
             <button
               onClick={() => setActiveBrush(null)}
               className="text-green-500/70 hover:text-green-300 transition-colors"
-              title="Clear brush"
+              title={t("clearBrush")}
             >
               <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M2 2l8 8M10 2L2 10" strokeLinecap="round" />
@@ -525,15 +527,15 @@ export default function PixelArtPreview({
               ? "border-green-600 bg-green-600/15 text-green-600 dark:text-green-400"
               : "border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300"
           }`}
-          title="Toggle grid lines"
+          title={t("gridToggle")}
         >
           <GridIcon active={showGrid} />
-          Grid
+          {t("gridLabel")}
         </button>
 
         {showGrid && (
-          <label className="flex items-center gap-1.5 cursor-pointer" title="Grid color">
-            <span className="text-xs text-gray-500 dark:text-zinc-400">Color</span>
+          <label className="flex items-center gap-1.5 cursor-pointer" title={t("colorLabel")}>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">{t("colorLabel")}</span>
             <input
               type="color"
               value={gridColor}
@@ -551,10 +553,10 @@ export default function PixelArtPreview({
               ? "border-blue-500 bg-blue-500/15 text-blue-500 dark:text-blue-400"
               : "border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300"
           }`}
-          title="Compare original and result"
+          title={t("compareTooltip")}
         >
           <CompareIcon active={compareEnabled} />
-          Compare
+          {t("compareLabel")}
         </button>
       </div>
 
@@ -635,7 +637,7 @@ export default function PixelArtPreview({
 
       {showPicker && pendingSel && (
         <BlockPickerModal
-          title="Replace selection"
+          title={t("replaceSelection")}
           onSelect={(block) => {
             onBlocksReplaced?.(pendingSel.r1, pendingSel.c1, pendingSel.r2, pendingSel.c2, block);
             setShowPicker(false);
@@ -750,15 +752,16 @@ function CompareIcon({ active }: { active: boolean }) {
 }
 
 function ToolbarSkeleton() {
+  const t = useTranslations("PixelArtPreview");
   return (
     <div className="flex items-center gap-2 flex-shrink-0 opacity-40 pointer-events-none select-none">
-      <span className="text-xs text-gray-500 dark:text-zinc-400">Zoom</span>
+      <span className="text-xs text-gray-500 dark:text-zinc-400">{t("zoomLabel")}</span>
       <button className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300">−</button>
       <span className="text-xs text-gray-700 dark:text-zinc-300 w-8 text-center">—</span>
       <button className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300">+</button>
       <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700" />
-      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">Grid</div>
-      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">Compare</div>
+      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">{t("gridLabel")}</div>
+      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">{t("compareLabel")}</div>
     </div>
   );
 }

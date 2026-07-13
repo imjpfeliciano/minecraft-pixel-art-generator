@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { track } from "@vercel/analytics";
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function ImageUpload({ onImageSelected }: Props) {
+  const t = useTranslations("ImageUpload");
   const [dragging, setDragging] = useState(false);
 
   const handleFile = useCallback(
@@ -83,9 +85,9 @@ export default function ImageUpload({ onImageSelected }: Props) {
       </svg>
       <div className="text-center">
         <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">
-          Drop an image here
+          {t("dropHeading")}
         </p>
-        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">or click to browse — PNG, JPG, WEBP, GIF</p>
+        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">{t("dropSubtext")}</p>
       </div>
     </label>
   );

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { track } from "@vercel/analytics";
 import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
 import PixelArtPreview from "./_components/PixelArtPreview";
 import BlockLegend from "./_components/BlockLegend";
 import ThemeToggle from "./_components/ThemeToggle";
+import LocaleSwitcher from "./_components/LocaleSwitcher";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -18,16 +20,22 @@ import { mapPixelsToBlocks } from "./_lib/color-matcher";
 import { loadAndResizeImage } from "./_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "./_lib/litematic-generator";
 
+// Loading placeholder for the 3D viewer — needs translations so it's a component
+function Loading3DViewer() {
+  const t = useTranslations("Page");
+  return (
+    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 dark:text-zinc-500">
+      {t("loading3d")}
+    </div>
+  );
+}
+
 // Three.js viewer is browser-only — skip SSR entirely
 const SchematicViewer3D = dynamic(
   () => import("./_components/SchematicViewer3D"),
   {
     ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 dark:text-zinc-500">
-        Loading 3D viewer…
-      </div>
-    ),
+    loading: Loading3DViewer,
   },
 );
 
@@ -96,6 +104,8 @@ function StepTracker({ steps }: { steps: Step[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const t = useTranslations("Page");
+
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -275,7 +285,7 @@ export default function Home() {
         selectedCategories.has(b.category)
       );
       if (allowedBlocks.length === 0) {
-        throw new Error("No blocks available. Select at least one category.");
+        throw new Error(t("errorNoBlocks"));
       }
 
       const { pixels } = await loadAndResizeImage(imageFile, width, height);
@@ -310,7 +320,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  }, [imageFile, width, height, orientation, selectedCategories, schematicName, fillBlockId, foundationEnabled, foundationBlockId]);
+  }, [t, imageFile, width, height, orientation, selectedCategories, schematicName, fillBlockId, foundationEnabled, foundationBlockId]);
 
   const handleDownload = useCallback(() => {
     if (!lastLitematic) return;
@@ -326,12 +336,12 @@ export default function Home() {
   const steps: Step[] = [
     {
       id: 1,
-      label: "Upload image",
+      label: t("step1"),
       state: imageFile ? "completed" : "active",
     },
     {
       id: 2,
-      label: "Configure",
+      label: t("step2"),
       state: blockGrid.length > 0 || isProcessing
         ? "completed"
         : imageFile
@@ -340,7 +350,7 @@ export default function Home() {
     },
     {
       id: 3,
-      label: "Generate",
+      label: t("step3"),
       state: blockGrid.length > 0
         ? "completed"
         : isProcessing
@@ -351,7 +361,7 @@ export default function Home() {
     },
     {
       id: 4,
-      label: "Download",
+      label: t("step4"),
       state: blockGrid.length > 0 ? "active" : "pending",
     },
   ];
@@ -366,10 +376,11 @@ export default function Home() {
           </svg>
         </div>
         <div>
-          <h1 className="text-base font-bold leading-none">Minecraft Pixel Art Generator</h1>
-          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Image → Litematica schematic</p>
+          <h1 className="text-base font-bold leading-none">{t("title")}</h1>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{t("tagline")}</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <LocaleSwitcher />
           <ThemeToggle />
         </div>
       </header>
@@ -385,7 +396,7 @@ export default function Home() {
           {/* 1. Upload */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-              Upload Image
+              {t("sectionUpload")}
             </h2>
             <ImageUpload onImageSelected={handleImageSelected} />
             {imageFile && (
@@ -398,7 +409,7 @@ export default function Home() {
           {/* Schematic name */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-              Schematic Name
+              {t("sectionSchematicName")}
             </h2>
             <input
               type="text"
@@ -412,7 +423,7 @@ export default function Home() {
           {/* 2. Configure */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-              Configure
+              {t("sectionConfigure")}
             </h2>
             <ControlPanel
               width={width}
@@ -432,30 +443,30 @@ export default function Home() {
           {/* Background fill */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-              Background Fill
+              {t("sectionBackground")}
             </h2>
             <select
               value={fillBlockId}
               onChange={(e) => setFillBlockId(e.target.value)}
               className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
             >
-              <option value="">(none / air)</option>
-              <optgroup label="White">
-                <option value="minecraft:white_concrete">White Concrete</option>
-                <option value="minecraft:quartz_block">Quartz Block</option>
-                <option value="minecraft:snow_block">Snow Block</option>
+              <option value="">{t("backgroundNone")}</option>
+              <optgroup label={t("backgroundGroupWhite")}>
+                <option value="minecraft:white_concrete">{t("backgroundWhiteConcrete")}</option>
+                <option value="minecraft:quartz_block">{t("backgroundQuartzBlock")}</option>
+                <option value="minecraft:snow_block">{t("backgroundSnowBlock")}</option>
               </optgroup>
-              <optgroup label="Black">
-                <option value="minecraft:black_concrete">Black Concrete</option>
-                <option value="minecraft:obsidian">Obsidian</option>
+              <optgroup label={t("backgroundGroupBlack")}>
+                <option value="minecraft:black_concrete">{t("backgroundBlackConcrete")}</option>
+                <option value="minecraft:obsidian">{t("backgroundObsidian")}</option>
               </optgroup>
-              <optgroup label="Gray">
-                <option value="minecraft:gray_concrete">Gray Concrete</option>
-                <option value="minecraft:smooth_stone">Smooth Stone</option>
+              <optgroup label={t("backgroundGroupGray")}>
+                <option value="minecraft:gray_concrete">{t("backgroundGrayConcrete")}</option>
+                <option value="minecraft:smooth_stone">{t("backgroundSmoothStone")}</option>
               </optgroup>
-              <optgroup label="Other">
-                <option value="minecraft:stone">Stone</option>
-                <option value="minecraft:oak_planks">Oak Planks</option>
+              <optgroup label={t("backgroundGroupOther")}>
+                <option value="minecraft:stone">{t("backgroundStone")}</option>
+                <option value="minecraft:oak_planks">{t("backgroundOakPlanks")}</option>
               </optgroup>
             </select>
           </section>
@@ -464,7 +475,7 @@ export default function Home() {
           {orientation === "horizontal" && (
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-                Foundation Layer
+                {t("sectionFoundation")}
               </h2>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -473,7 +484,7 @@ export default function Home() {
                   onChange={(e) => setFoundationEnabled(e.target.checked)}
                   className="w-4 h-4 rounded border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-800 accent-green-500 cursor-pointer"
                 />
-                <span className="text-sm text-gray-700 dark:text-zinc-300">Add foundation layer</span>
+                <span className="text-sm text-gray-700 dark:text-zinc-300">{t("foundationAddLayer")}</span>
               </label>
               {foundationEnabled && (
                 <select
@@ -481,11 +492,11 @@ export default function Home() {
                   onChange={(e) => setFoundationBlockId(e.target.value)}
                   className="mt-3 w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
                 >
-                  <option value="minecraft:stone">Stone</option>
-                  <option value="minecraft:smooth_stone">Smooth Stone</option>
-                  <option value="minecraft:deepslate">Deepslate</option>
-                  <option value="minecraft:obsidian">Obsidian</option>
-                  <option value="minecraft:oak_planks">Oak Planks</option>
+                  <option value="minecraft:stone">{t("foundationStone")}</option>
+                  <option value="minecraft:smooth_stone">{t("foundationSmoothStone")}</option>
+                  <option value="minecraft:deepslate">{t("foundationDeepslate")}</option>
+                  <option value="minecraft:obsidian">{t("foundationObsidian")}</option>
+                  <option value="minecraft:oak_planks">{t("foundationOakPlanks")}</option>
                 </select>
               )}
             </section>
@@ -511,11 +522,11 @@ export default function Home() {
                   {/* Panel header */}
                   <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
                     <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
-                      Pixel Art
+                      {t("panelPixelArt")}
                     </span>
                     {blockGrid.length > 0 && (
                       <span className="text-xs text-gray-400 dark:text-zinc-600">
-                        {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
+                        {t("dimensions", { cols: blockGrid[0]?.length ?? 0, rows: blockGrid.length })}
                       </span>
                     )}
 
@@ -533,7 +544,7 @@ export default function Home() {
                               : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                           }`}
                         >
-                          2D
+                          {t("view2d")}
                         </button>
                         <button
                           onClick={() => {
@@ -546,7 +557,7 @@ export default function Home() {
                               : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                           }`}
                         >
-                          3D
+                          {t("view3d")}
                         </button>
                       </div>
                     )}
@@ -555,13 +566,13 @@ export default function Home() {
                       <button
                         onClick={handleUndo}
                         className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
-                        title="Undo (Ctrl+Z)"
+                        title={t("undoTitle")}
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <path d="M3 8h7a3 3 0 100-6H7" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M6 5L3 8l3 3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        Undo
+                        {t("undoButton")}
                       </button>
                     )}
 
@@ -577,14 +588,14 @@ export default function Home() {
                             ? "border-gray-400 bg-gray-100 text-gray-800 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-200"
                             : "border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-300"
                         }`}
-                        title={showMaterialList ? "Hide material list" : "Show material list"}
+                        title={showMaterialList ? t("hideMaterials") : t("showMaterials")}
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <line x1="3" y1="4" x2="13" y2="4" />
                           <line x1="3" y1="8" x2="13" y2="8" />
                           <line x1="3" y1="12" x2="10" y2="12" />
                         </svg>
-                        Materials
+                        {t("materialsButton")}
                         <svg
                           className={`w-3 h-3 transition-transform ${showMaterialList ? "rotate-180" : ""}`}
                           viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
@@ -628,12 +639,12 @@ export default function Home() {
                     {/* Side panel header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
                       <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
-                        Materials
+                        {t("materialsButton")}
                       </span>
                       <button
                         onClick={() => setShowMaterialList(false)}
                         className="text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
-                        title="Close"
+                        title={t("closeButton")}
                       >
                         <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" />
@@ -663,11 +674,11 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Download .litematic
+                    {t("downloadButton")}
                   </button>
                   <div className="text-xs text-gray-400 dark:text-zinc-500">
-                    <p>Import via <span className="text-gray-700 dark:text-zinc-300 font-medium">Litematica mod</span></p>
-                    <p>in Minecraft → Load Schematics</p>
+                    <p>{t("importVia")} <span className="text-gray-700 dark:text-zinc-300 font-medium">{t("importLitematicaMod")}</span></p>
+                    <p>{t("importInstructions")}</p>
                   </div>
                 </div>
               )}
@@ -680,7 +691,7 @@ export default function Home() {
               <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-hidden min-w-0">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
                   <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
-                    Original
+                    {t("panelOriginal")}
                   </span>
                   {imageFile && (
                     <span className="text-xs text-gray-400 dark:text-zinc-600 truncate">
@@ -694,7 +705,7 @@ export default function Home() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={imagePreviewUrl}
-                      alt="Original image"
+                      alt={t("originalImageAlt")}
                       className="max-w-full max-h-full object-contain rounded-lg"
                     />
                   ) : (
@@ -705,7 +716,7 @@ export default function Home() {
                             d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M12 3v.01" />
                         </svg>
                       </div>
-                      <p className="text-gray-400 dark:text-zinc-600 text-sm">Upload an image to begin</p>
+                      <p className="text-gray-400 dark:text-zinc-600 text-sm">{t("uploadToBegin")}</p>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { GENERATION_BLOCK_CATEGORIES, GENERATION_BLOCKS } from "../_lib/blocks";
 import type { Orientation } from "../_lib/litematic-generator";
 
@@ -30,6 +31,8 @@ export default function ControlPanel({
   isProcessing,
   hasImage,
 }: Props) {
+  const t = useTranslations("ControlPanel");
+
   const categoryCounts = GENERATION_BLOCK_CATEGORIES.map((cat) => ({
     cat,
     count: GENERATION_BLOCKS.filter((b) => b.category === cat).length,
@@ -40,11 +43,11 @@ export default function ControlPanel({
       {/* Dimensions */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-          Dimensions (blocks)
+          {t("dimensionsHeading")}
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500 dark:text-zinc-400">Width</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">{t("widthLabel")}</span>
             <input
               type="number"
               min={1}
@@ -59,7 +62,7 @@ export default function ControlPanel({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500 dark:text-zinc-400">Height</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">{t("heightLabel")}</span>
             <input
               type="number"
               min={1}
@@ -75,14 +78,14 @@ export default function ControlPanel({
           </label>
         </div>
         <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">
-          Total: {(width * height).toLocaleString()} blocks
+          {t("totalBlocks", { count: (width * height).toLocaleString() })}
         </p>
       </section>
 
       {/* Orientation */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-          Orientation
+          {t("orientationHeading")}
         </h3>
         <div className="grid grid-cols-2 gap-3">
           {(["horizontal", "vertical"] as Orientation[]).map((o) => (
@@ -110,9 +113,9 @@ export default function ControlPanel({
                   <text x="16" y="20" textAnchor="middle" fontSize="7" fill="currentColor" fontFamily="monospace">XY</text>
                 </svg>
               )}
-              <span className="capitalize">{o}</span>
+              <span>{o === "horizontal" ? t("orientationHorizontal") : t("orientationVertical")}</span>
               <span className="text-gray-400 dark:text-zinc-500 font-normal">
-                {o === "horizontal" ? "Floor art" : "Wall art"}
+                {o === "horizontal" ? t("floorArt") : t("wallArt")}
               </span>
             </button>
           ))}
@@ -122,7 +125,7 @@ export default function ControlPanel({
       {/* Block categories */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
-          Block Categories
+          {t("categoriesHeading")}
         </h3>
         <div className="flex flex-wrap gap-2">
           {categoryCounts.map(({ cat, count }) => {
@@ -145,7 +148,7 @@ export default function ControlPanel({
           })}
         </div>
         <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">
-          {GENERATION_BLOCKS.filter((b) => selectedCategories.has(b.category)).length} blocks available
+          {t("blocksAvailable", { count: GENERATION_BLOCKS.filter((b) => selectedCategories.has(b.category)).length })}
         </p>
       </section>
 
@@ -167,10 +170,10 @@ export default function ControlPanel({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            Processing…
+            {t("processingButton")}
           </span>
         ) : (
-          "Generate Pixel Art"
+          t("generateButton")
         )}
       </button>
     </div>
