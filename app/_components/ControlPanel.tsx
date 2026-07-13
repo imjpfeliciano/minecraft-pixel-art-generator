@@ -39,12 +39,12 @@ export default function ControlPanel({
     <div className="flex flex-col gap-6">
       {/* Dimensions */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
           Dimensions (blocks)
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-zinc-400">Width</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">Width</span>
             <input
               type="number"
               min={1}
@@ -52,14 +52,14 @@ export default function ControlPanel({
               value={width}
               onChange={(e) => onWidthChange(Math.max(1, Math.min(512, Number(e.target.value))))}
               className="
-                rounded-lg border border-zinc-700 bg-zinc-800
-                px-3 py-2 text-sm text-zinc-100
+                rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800
+                px-3 py-2 text-sm text-gray-900 dark:text-zinc-100
                 focus:border-green-500 focus:outline-none
               "
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-zinc-400">Height</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">Height</span>
             <input
               type="number"
               min={1}
@@ -67,21 +67,21 @@ export default function ControlPanel({
               value={height}
               onChange={(e) => onHeightChange(Math.max(1, Math.min(512, Number(e.target.value))))}
               className="
-                rounded-lg border border-zinc-700 bg-zinc-800
-                px-3 py-2 text-sm text-zinc-100
+                rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800
+                px-3 py-2 text-sm text-gray-900 dark:text-zinc-100
                 focus:border-green-500 focus:outline-none
               "
             />
           </label>
         </div>
-        <p className="text-xs text-zinc-500 mt-2">
+        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">
           Total: {(width * height).toLocaleString()} blocks
         </p>
       </section>
 
       {/* Orientation */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
           Orientation
         </h3>
         <div className="grid grid-cols-2 gap-3">
@@ -92,8 +92,8 @@ export default function ControlPanel({
               className={`
                 flex flex-col items-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors
                 ${orientation === o
-                  ? "border-green-500 bg-green-950/50 text-green-400"
-                  : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-500"
+                  ? "border-green-500 bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400"
+                  : "border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500"
                 }
               `}
             >
@@ -111,7 +111,7 @@ export default function ControlPanel({
                 </svg>
               )}
               <span className="capitalize">{o}</span>
-              <span className="text-zinc-500 font-normal">
+              <span className="text-gray-400 dark:text-zinc-500 font-normal">
                 {o === "horizontal" ? "Floor art" : "Wall art"}
               </span>
             </button>
@@ -121,7 +121,7 @@ export default function ControlPanel({
 
       {/* Block categories */}
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
           Block Categories
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -134,8 +134,8 @@ export default function ControlPanel({
                 className={`
                   rounded-full border px-3 py-1 text-xs font-medium transition-colors
                   ${active
-                    ? "border-green-500 bg-green-950/50 text-green-300"
-                    : "border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"
+                    ? "border-green-500 bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300"
+                    : "border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300"
                   }
                 `}
               >
@@ -144,7 +144,7 @@ export default function ControlPanel({
             );
           })}
         </div>
-        <p className="text-xs text-zinc-500 mt-2">
+        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">
           {GENERATION_BLOCKS.filter((b) => selectedCategories.has(b.category)).length} blocks available
         </p>
       </section>
@@ -156,8 +156,8 @@ export default function ControlPanel({
         className={`
           w-full rounded-xl px-4 py-3 font-semibold text-sm transition-all
           ${hasImage && !isProcessing
-            ? "bg-green-600 text-white hover:bg-green-500 active:scale-95 cursor-pointer"
-            : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+            ? "bg-grass text-white hover:bg-grass-hover active:scale-95 cursor-pointer"
+            : "bg-gray-200 text-gray-400 dark:bg-zinc-700 dark:text-zinc-500 cursor-not-allowed"
           }
         `}
       >

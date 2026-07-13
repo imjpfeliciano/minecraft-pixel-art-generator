@@ -325,7 +325,7 @@ export default function SchematicViewer3D({
   const canvasKey = `${cols}x${rows}x${orientation}`;
 
   return (
-    <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
+    <div className="relative w-full h-full bg-gray-100 dark:bg-zinc-900 rounded-lg overflow-hidden">
       {/* 3D canvas */}
       <Canvas
         key={canvasKey}
@@ -333,7 +333,7 @@ export default function SchematicViewer3D({
         camera={{ position: cameraPos, fov: 50, near: 0.1, far: 10000 }}
         style={{ width: "100%", height: "100%" }}
       >
-        <color attach="background" args={["#18181b"]} />
+        <color attach="background" args={["#27272a"]} />
         <Scene
           blockGrid={blockGrid}
           orientation={orientation}
@@ -349,7 +349,7 @@ export default function SchematicViewer3D({
       {totalLayers > 1 && (
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8 bg-gradient-to-t from-zinc-950/95 to-transparent pointer-events-none">
           <div className="flex items-center justify-center gap-3 pointer-events-auto">
-            {/* Mode segmented control */}
+            {/* Mode segmented control — always dark since it overlays the 3D canvas */}
             <div className="flex rounded-md overflow-hidden border border-zinc-700">
               {LAYER_MODES.map(({ mode, label }) => (
                 <button
@@ -360,7 +360,7 @@ export default function SchematicViewer3D({
                   }}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     layerMode === mode
-                      ? "bg-green-600 text-white"
+                      ? "bg-grass text-white"
                       : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
                   }`}
                 >
@@ -396,7 +396,7 @@ export default function SchematicViewer3D({
       )}
 
       {/* Controls hint */}
-      <div className="absolute top-3 right-3 text-[10px] text-zinc-600 leading-relaxed text-right pointer-events-none select-none">
+      <div className="absolute top-3 right-3 text-[10px] text-zinc-500 leading-relaxed text-right pointer-events-none select-none">
         <p>Drag to rotate</p>
         <p>Scroll to zoom</p>
         <p>Right-drag to pan</p>
@@ -406,17 +406,17 @@ export default function SchematicViewer3D({
       {/* Block hover tooltip — mirrors the 2D preview style */}
       {hoverInfo && (
         <div
-          className="fixed z-50 pointer-events-none rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-xs shadow-xl"
+          className="fixed z-50 pointer-events-none rounded-lg border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-3 py-2 text-xs shadow-xl"
           style={{ left: hoverInfo.x + 12, top: hoverInfo.y - 12 }}
         >
           <div className="flex items-center gap-2">
             <span
-              className="inline-block w-3 h-3 rounded-sm flex-shrink-0 border border-zinc-600"
+              className="inline-block w-3 h-3 rounded-sm flex-shrink-0 border border-gray-300 dark:border-zinc-600"
               style={{ backgroundColor: `rgb(${hoverInfo.rgb[0]},${hoverInfo.rgb[1]},${hoverInfo.rgb[2]})` }}
             />
-            <span className="text-zinc-100 font-medium">{hoverInfo.name}</span>
+            <span className="text-gray-900 dark:text-zinc-100 font-medium">{hoverInfo.name}</span>
           </div>
-          <p className="text-zinc-500 mt-0.5">{hoverInfo.id}</p>
+          <p className="text-gray-400 dark:text-zinc-500 mt-0.5">{hoverInfo.id}</p>
         </div>
       )}
     </div>

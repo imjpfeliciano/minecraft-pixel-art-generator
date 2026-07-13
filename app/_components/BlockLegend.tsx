@@ -53,13 +53,13 @@ export default function BlockLegend({ blockGrid, onReplaceBlock }: Props) {
 
   return (
     <div className="flex flex-col">
-      <div className="px-4 py-2 border-b border-zinc-800 flex-shrink-0 flex items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">
+      <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0 flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-400 dark:text-zinc-500">
           {sorted.length} types · {total.toLocaleString()} blocks
         </p>
         <button
           onClick={handleDownloadCsv}
-          className="flex items-center gap-1.5 rounded-lg bg-green-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-green-500 active:scale-95 transition-all"
+          className="flex items-center gap-1.5 rounded-lg bg-grass px-2.5 py-1 text-xs font-semibold text-white hover:bg-grass-hover active:scale-95 transition-all"
           title="Download as CSV"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,22 +69,22 @@ export default function BlockLegend({ blockGrid, onReplaceBlock }: Props) {
           Export CSV
         </button>
       </div>
-      <div className="divide-y divide-zinc-800">
+      <div className="divide-y divide-gray-100 dark:divide-zinc-800">
         {sorted.map(({ block, count }) => (
           <div key={block.id} className="flex items-center gap-3 px-4 py-2.5">
             <BlockIcon block={block} size={20} />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-zinc-200 font-medium truncate">{block.name}</p>
-              <p className="text-xs text-zinc-500 truncate">{block.id}</p>
+              <p className="text-xs text-gray-800 dark:text-zinc-200 font-medium truncate">{block.name}</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{block.id}</p>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-xs font-semibold text-zinc-200">{count.toLocaleString()}</p>
-              <p className="text-xs text-zinc-500">{((count / total) * 100).toFixed(1)}%</p>
+              <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">{count.toLocaleString()}</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500">{((count / total) * 100).toFixed(1)}%</p>
             </div>
             {onReplaceBlock && (
               <button
                 onClick={() => setReplacingBlockId(block.id)}
-                className="flex-shrink-0 rounded-lg border border-zinc-700 px-2 py-1 text-[10px] font-medium text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+                className="flex-shrink-0 rounded-lg border border-gray-200 dark:border-zinc-700 px-2 py-1 text-[10px] font-medium text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-800 dark:hover:text-zinc-200 transition-colors"
                 title={`Replace all ${block.name}`}
               >
                 Replace

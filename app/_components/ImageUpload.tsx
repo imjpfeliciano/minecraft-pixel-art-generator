@@ -57,8 +57,8 @@ export default function ImageUpload({ onImageSelected }: Props) {
         rounded-2xl border-2 border-dashed p-10 cursor-pointer
         transition-colors select-none
         ${dragging
-          ? "border-green-400 bg-green-950/30"
-          : "border-zinc-600 bg-zinc-900 hover:border-zinc-400 hover:bg-zinc-800"
+          ? "border-green-400 bg-green-50 dark:bg-green-950/30"
+          : "border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-900 hover:border-gray-400 dark:hover:border-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800"
         }
       `}
     >
@@ -69,7 +69,7 @@ export default function ImageUpload({ onImageSelected }: Props) {
         onChange={onInputChange}
       />
       <svg
-        className={`w-12 h-12 ${dragging ? "text-green-400" : "text-zinc-500"}`}
+        className={`w-12 h-12 ${dragging ? "text-green-400" : "text-gray-400 dark:text-zinc-500"}`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -82,10 +82,10 @@ export default function ImageUpload({ onImageSelected }: Props) {
         />
       </svg>
       <div className="text-center">
-        <p className="text-sm font-semibold text-zinc-200">
+        <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">
           Drop an image here
         </p>
-        <p className="text-xs text-zinc-500 mt-1">or click to browse — PNG, JPG, WEBP, GIF</p>
+        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">or click to browse — PNG, JPG, WEBP, GIF</p>
       </div>
     </label>
   );

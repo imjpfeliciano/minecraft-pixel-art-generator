@@ -7,6 +7,7 @@ import ImageUpload from "./_components/ImageUpload";
 import ControlPanel from "./_components/ControlPanel";
 import PixelArtPreview from "./_components/PixelArtPreview";
 import BlockLegend from "./_components/BlockLegend";
+import ThemeToggle from "./_components/ThemeToggle";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -23,7 +24,7 @@ const SchematicViewer3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
+      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 dark:text-zinc-500">
         Loading 3D viewer…
       </div>
     ),
@@ -51,10 +52,10 @@ function StepTracker({ steps }: { steps: Step[] }) {
               className={`
                 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-colors
                 ${step.state === "completed"
-                  ? "bg-green-600 text-white"
+                  ? "bg-grass text-white"
                   : step.state === "active"
                     ? "border-2 border-green-500 text-green-400"
-                    : "border-2 border-zinc-700 text-zinc-600"
+                    : "border-2 border-gray-300 text-gray-400 dark:border-zinc-700 dark:text-zinc-600"
                 }
               `}
             >
@@ -70,7 +71,7 @@ function StepTracker({ steps }: { steps: Step[] }) {
             {i < steps.length - 1 && (
               <div
                 className={`w-px flex-1 my-1 ${
-                  step.state === "completed" ? "bg-green-700" : "bg-zinc-800"
+                  step.state === "completed" ? "bg-green-700" : "bg-gray-200 dark:bg-zinc-800"
                 }`}
                 style={{ minHeight: 12 }}
               />
@@ -80,7 +81,7 @@ function StepTracker({ steps }: { steps: Step[] }) {
           <div className="pb-3 pt-0.5">
             <span
               className={`text-xs font-medium ${
-                step.state === "pending" ? "text-zinc-600" : "text-zinc-300"
+                step.state === "pending" ? "text-gray-400 dark:text-zinc-600" : "text-gray-700 dark:text-zinc-300"
               }`}
             >
               {step.label}
@@ -356,36 +357,39 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 flex flex-col">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-center gap-3 flex-shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+      <header className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4 flex items-center gap-3 flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-grass flex items-center justify-center flex-shrink-0">
           <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v10H7V7zm2 2v6h6V9H9z" />
           </svg>
         </div>
         <div>
           <h1 className="text-base font-bold leading-none">Minecraft Pixel Art Generator</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Image → Litematica schematic</p>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">Image → Litematica schematic</p>
+        </div>
+        <div className="ml-auto">
+          <ThemeToggle />
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── Sidebar ───────────────────────────────────────────────────────── */}
-        <aside className="w-80 flex-shrink-0 border-r border-zinc-800 overflow-y-auto p-5 flex flex-col gap-6">
+        <aside className="w-80 flex-shrink-0 border-r border-gray-100 dark:border-zinc-800 overflow-y-auto p-5 flex flex-col gap-6">
           {/* Step tracker */}
           <StepTracker steps={steps} />
 
-          <div className="border-t border-zinc-800" />
+          <div className="border-t border-gray-100 dark:border-zinc-800" />
 
           {/* 1. Upload */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
               Upload Image
             </h2>
             <ImageUpload onImageSelected={handleImageSelected} />
             {imageFile && (
-              <p className="mt-2 text-xs text-zinc-500 truncate">
+              <p className="mt-2 text-xs text-gray-400 dark:text-zinc-500 truncate">
                 {imageFile.name}
               </p>
             )}
@@ -393,7 +397,7 @@ export default function Home() {
 
           {/* Schematic name */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
               Schematic Name
             </h2>
             <input
@@ -401,13 +405,13 @@ export default function Home() {
               value={schematicName}
               onChange={(e) => setSchematicName(e.target.value || "PixelArt")}
               placeholder="PixelArt"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
             />
           </section>
 
           {/* 2. Configure */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
               Configure
             </h2>
             <ControlPanel
@@ -427,13 +431,13 @@ export default function Home() {
 
           {/* Background fill */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
               Background Fill
             </h2>
             <select
               value={fillBlockId}
               onChange={(e) => setFillBlockId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
             >
               <option value="">(none / air)</option>
               <optgroup label="White">
@@ -459,7 +463,7 @@ export default function Home() {
           {/* Foundation layer — only relevant for horizontal orientation */}
           {orientation === "horizontal" && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-3">
                 Foundation Layer
               </h2>
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -467,15 +471,15 @@ export default function Home() {
                   type="checkbox"
                   checked={foundationEnabled}
                   onChange={(e) => setFoundationEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 accent-green-500 cursor-pointer"
+                  className="w-4 h-4 rounded border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-800 accent-green-500 cursor-pointer"
                 />
-                <span className="text-sm text-zinc-300">Add foundation layer</span>
+                <span className="text-sm text-gray-700 dark:text-zinc-300">Add foundation layer</span>
               </label>
               {foundationEnabled && (
                 <select
                   value={foundationBlockId}
                   onChange={(e) => setFoundationBlockId(e.target.value)}
-                  className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-green-500 focus:outline-none"
+                  className="mt-3 w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
                 >
                   <option value="minecraft:stone">Stone</option>
                   <option value="minecraft:smooth_stone">Smooth Stone</option>
@@ -488,7 +492,7 @@ export default function Home() {
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-3 text-sm text-red-700 dark:text-red-300">
               {error}
             </div>
           )}
@@ -503,21 +507,21 @@ export default function Home() {
               <div className="flex flex-1 overflow-hidden min-h-0">
 
                 {/* Preview panel */}
-                <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
+                <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-hidden min-w-0">
                   {/* Panel header */}
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
                       Pixel Art
                     </span>
                     {blockGrid.length > 0 && (
-                      <span className="text-xs text-zinc-600">
+                      <span className="text-xs text-gray-400 dark:text-zinc-600">
                         {blockGrid[0]?.length ?? 0} × {blockGrid.length} blocks
                       </span>
                     )}
 
                     {/* 2D / 3D view toggle */}
                     {blockGrid.length > 0 && (
-                      <div className="flex items-center rounded-lg border border-zinc-700 overflow-hidden text-xs font-medium">
+                      <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
                         <button
                           onClick={() => {
                             setPreviewMode("2d");
@@ -525,8 +529,8 @@ export default function Home() {
                           }}
                           className={`px-2.5 py-1 transition-colors ${
                             previewMode === "2d"
-                              ? "bg-zinc-700 text-zinc-100"
-                              : "text-zinc-500 hover:text-zinc-300"
+                              ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                           }`}
                         >
                           2D
@@ -538,8 +542,8 @@ export default function Home() {
                           }}
                           className={`px-2.5 py-1 transition-colors ${
                             previewMode === "3d"
-                              ? "bg-zinc-700 text-zinc-100"
-                              : "text-zinc-500 hover:text-zinc-300"
+                              ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                           }`}
                         >
                           3D
@@ -550,7 +554,7 @@ export default function Home() {
                     {undoStack.length > 0 && (
                       <button
                         onClick={handleUndo}
-                        className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-400 hover:border-zinc-500 hover:text-zinc-300 transition-colors"
+                        className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
                         title="Undo (Ctrl+Z)"
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -570,8 +574,8 @@ export default function Home() {
                         })}
                         className={`ml-auto flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
                           showMaterialList
-                            ? "border-zinc-500 bg-zinc-800 text-zinc-200"
-                            : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+                            ? "border-gray-400 bg-gray-100 text-gray-800 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-200"
+                            : "border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-300"
                         }`}
                         title={showMaterialList ? "Hide material list" : "Show material list"}
                       >
@@ -620,15 +624,15 @@ export default function Home() {
 
                 {/* Material list side panel */}
                 {showMaterialList && blockGrid.length > 0 && (
-                  <div className="w-72 flex-shrink-0 flex flex-col border-l border-zinc-800 bg-zinc-950 overflow-hidden">
+                  <div className="w-72 flex-shrink-0 flex flex-col border-l border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
                     {/* Side panel header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-                      <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
                         Materials
                       </span>
                       <button
                         onClick={() => setShowMaterialList(false)}
-                        className="text-zinc-600 hover:text-zinc-300 transition-colors"
+                        className="text-gray-400 dark:text-zinc-600 hover:text-gray-700 dark:hover:text-zinc-300 transition-colors"
                         title="Close"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -650,10 +654,10 @@ export default function Home() {
 
               {/* ── Download bar ─────────────────────────────────────────────── */}
               {blockGrid.length > 0 && (
-                <div className="flex-shrink-0 border-t border-zinc-800 px-4 py-3 flex items-center gap-3">
+                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3">
                   <button
                     onClick={handleDownload}
-                    className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-500 active:scale-95 transition-all"
+                    className="flex items-center gap-2 rounded-xl bg-grass px-5 py-3 text-sm font-semibold text-white hover:bg-grass-hover active:scale-95 transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -661,8 +665,8 @@ export default function Home() {
                     </svg>
                     Download .litematic
                   </button>
-                  <div className="text-xs text-zinc-500">
-                    <p>Import via <span className="text-zinc-300 font-medium">Litematica mod</span></p>
+                  <div className="text-xs text-gray-400 dark:text-zinc-500">
+                    <p>Import via <span className="text-gray-700 dark:text-zinc-300 font-medium">Litematica mod</span></p>
                     <p>in Minecraft → Load Schematics</p>
                   </div>
                 </div>
@@ -670,16 +674,16 @@ export default function Home() {
             </>
           ) : (
             /* ── Pre-generation view: two panels ───────────────────────────── */
-            <div className="flex flex-1 overflow-hidden gap-px bg-zinc-800 min-h-0">
+            <div className="flex flex-1 overflow-hidden gap-px bg-gray-100 dark:bg-zinc-800 min-h-0">
 
               {/* Original image panel — full width before generation */}
-              <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden min-w-0">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-                  <span className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-hidden min-w-0">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
                     Original
                   </span>
                   {imageFile && (
-                    <span className="text-xs text-zinc-600 truncate">
+                    <span className="text-xs text-gray-400 dark:text-zinc-600 truncate">
                       {imageFile.name}
                     </span>
                   )}
@@ -695,13 +699,13 @@ export default function Home() {
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-3 text-center">
-                      <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-gray-200 dark:border-zinc-700 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-300 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                             d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M12 3v.01" />
                         </svg>
                       </div>
-                      <p className="text-zinc-600 text-sm">Upload an image to begin</p>
+                      <p className="text-gray-400 dark:text-zinc-600 text-sm">Upload an image to begin</p>
                     </div>
                   )}
                 </div>

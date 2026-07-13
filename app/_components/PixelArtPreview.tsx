@@ -430,9 +430,9 @@ export default function PixelArtPreview({
     return (
       <div className="relative w-full h-full flex flex-col gap-3 overflow-hidden">
         <ToolbarSkeleton />
-        <div className="flex-1 min-h-0 rounded-xl border border-zinc-700 overflow-hidden relative bg-zinc-900">
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-800" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-600">
+        <div className="flex-1 min-h-0 rounded-xl border border-gray-200 dark:border-zinc-700 overflow-hidden relative bg-gray-50 dark:bg-zinc-900">
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-zinc-600">
             <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -451,26 +451,26 @@ export default function PixelArtPreview({
 
       <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">Zoom</span>
+          <span className="text-xs text-gray-500 dark:text-zinc-400">Zoom</span>
           <button
             onClick={() => handleZoom(-1)}
-            className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300 hover:bg-zinc-700"
+            className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
           >
             −
           </button>
-          <span className="text-xs text-zinc-300 w-8 text-center">{cellSize}px</span>
+          <span className="text-xs text-gray-700 dark:text-zinc-300 w-8 text-center">{cellSize}px</span>
           <button
             onClick={() => handleZoom(1)}
-            className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300 hover:bg-zinc-700"
+            className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
           >
             +
           </button>
-          <span className="text-xs text-zinc-500 ml-1">{cols} × {rows}</span>
+          <span className="text-xs text-gray-400 dark:text-zinc-500 ml-1">{cols} × {rows}</span>
         </div>
 
-        <div className="w-px h-4 bg-zinc-700 flex-shrink-0" />
+        <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700 flex-shrink-0" />
 
-        <div className="flex items-center rounded-lg border border-zinc-700 overflow-hidden text-xs font-medium">
+        <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
           {(["pan", "select", "pick"] as const).map((mode) => (
             <button
               key={mode}
@@ -482,8 +482,8 @@ export default function PixelArtPreview({
               disabled={compareEnabled}
               className={`px-2.5 py-1 transition-colors capitalize disabled:opacity-30 disabled:cursor-not-allowed ${
                 editorMode === mode
-                  ? "bg-zinc-700 text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                  : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
               }`}
               title={
                 compareEnabled
@@ -516,14 +516,14 @@ export default function PixelArtPreview({
           </div>
         )}
 
-        <div className="w-px h-4 bg-zinc-700 flex-shrink-0" />
+        <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700 flex-shrink-0" />
 
         <button
           onClick={() => { track("Grid Toggled", { enabled: !showGrid }); onShowGridChange(!showGrid); }}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
             showGrid
-              ? "border-green-600 bg-green-600/15 text-green-400"
-              : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+              ? "border-green-600 bg-green-600/15 text-green-600 dark:text-green-400"
+              : "border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300"
           }`}
           title="Toggle grid lines"
         >
@@ -533,12 +533,12 @@ export default function PixelArtPreview({
 
         {showGrid && (
           <label className="flex items-center gap-1.5 cursor-pointer" title="Grid color">
-            <span className="text-xs text-zinc-400">Color</span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">Color</span>
             <input
               type="color"
               value={gridColor}
               onChange={(e) => onGridColorChange(e.target.value)}
-              className="w-6 h-6 rounded cursor-pointer border border-zinc-600 bg-transparent p-0"
+              className="w-6 h-6 rounded cursor-pointer border border-gray-300 dark:border-zinc-600 bg-transparent p-0"
             />
           </label>
         )}
@@ -548,8 +548,8 @@ export default function PixelArtPreview({
           disabled={!originalImageUrl}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
             compareEnabled
-              ? "border-blue-500 bg-blue-500/15 text-blue-400"
-              : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+              ? "border-blue-500 bg-blue-500/15 text-blue-500 dark:text-blue-400"
+              : "border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:border-gray-400 dark:hover:border-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300"
           }`}
           title="Compare original and result"
         >
@@ -560,7 +560,7 @@ export default function PixelArtPreview({
 
       <div
         ref={viewportRef}
-        className="flex-1 min-h-0 rounded-xl border border-zinc-700 overflow-hidden relative bg-zinc-900 select-none"
+        className="flex-1 min-h-0 rounded-xl border border-gray-200 dark:border-zinc-700 overflow-hidden relative bg-gray-50 dark:bg-zinc-900 select-none"
         style={{ cursor: viewportCursor }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -622,14 +622,14 @@ export default function PixelArtPreview({
 
       {tooltip && editorMode === "pan" && (
         <div
-          className="fixed z-50 pointer-events-none rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-xs shadow-xl"
+          className="fixed z-50 pointer-events-none rounded-lg border border-gray-200 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-3 py-2 text-xs shadow-xl"
           style={{ left: tooltip.x + 12, top: tooltip.y - 12 }}
         >
           <div className="flex items-center gap-2">
             <BlockIcon block={tooltip.block} size={12} />
-            <span className="text-zinc-100 font-medium">{tooltip.block.name}</span>
+            <span className="text-gray-900 dark:text-zinc-100 font-medium">{tooltip.block.name}</span>
           </div>
-          <p className="text-zinc-500 mt-0.5">{tooltip.block.id}</p>
+          <p className="text-gray-400 dark:text-zinc-500 mt-0.5">{tooltip.block.id}</p>
         </div>
       )}
 
@@ -752,13 +752,13 @@ function CompareIcon({ active }: { active: boolean }) {
 function ToolbarSkeleton() {
   return (
     <div className="flex items-center gap-2 flex-shrink-0 opacity-40 pointer-events-none select-none">
-      <span className="text-xs text-zinc-400">Zoom</span>
-      <button className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">−</button>
-      <span className="text-xs text-zinc-300 w-8 text-center">—</span>
-      <button className="rounded border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">+</button>
-      <div className="w-px h-4 bg-zinc-700" />
-      <div className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500">Grid</div>
-      <div className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500">Compare</div>
+      <span className="text-xs text-gray-500 dark:text-zinc-400">Zoom</span>
+      <button className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300">−</button>
+      <span className="text-xs text-gray-700 dark:text-zinc-300 w-8 text-center">—</span>
+      <button className="rounded border border-gray-200 dark:border-zinc-700 px-2 py-0.5 text-xs text-gray-700 dark:text-zinc-300">+</button>
+      <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700" />
+      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">Grid</div>
+      <div className="rounded-lg border border-gray-200 dark:border-zinc-700 px-2.5 py-1 text-xs text-gray-400 dark:text-zinc-500">Compare</div>
     </div>
   );
 }

@@ -16,8 +16,8 @@ export function BlockIcon({
   const showTexture = block.texture && !imgError;
 
   return (
-    <span
-      className={`inline-block flex-shrink-0 rounded border border-zinc-600 overflow-hidden ${className}`}
+      <span
+      className={`inline-block flex-shrink-0 rounded border border-gray-300 dark:border-zinc-600 overflow-hidden ${className}`}
       style={{ width: size, height: size }}
     >
       {showTexture ? (
@@ -94,14 +94,14 @@ export default function BlockPickerModal({
       onClick={onClose}
     >
       <div
-        className="flex flex-col w-[80vw] max-w-[80vw] max-h-[80vh] rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl overflow-hidden"
+        className="flex flex-col w-[80vw] max-w-[80vw] max-h-[80vh] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-zinc-100">{title}</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
           <button
             onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-200 transition-colors"
+            className="text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
             title="Close"
           >
             <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -110,20 +110,20 @@ export default function BlockPickerModal({
           </button>
         </div>
 
-        <div className="px-4 py-2 border-b border-zinc-800 flex-shrink-0">
+        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
           <input
             ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search blocks…"
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-green-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:border-green-500 focus:outline-none"
           />
         </div>
 
         <div className="flex flex-1 min-h-0">
           <nav
-            className="w-40 flex-shrink-0 border-r border-zinc-800 overflow-y-auto py-1"
+            className="w-40 flex-shrink-0 border-r border-gray-100 dark:border-zinc-800 overflow-y-auto py-1"
             aria-label="Block categories"
           >
             {pickerCategories.map((cat) => (
@@ -132,8 +132,8 @@ export default function BlockPickerModal({
                 onClick={() => setCategory(cat)}
                 className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
                   category === cat
-                    ? "bg-green-600/20 text-green-400 border-r-2 border-green-500"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border-r-2 border-transparent"
+                    ? "bg-green-600/20 text-green-600 dark:text-green-400 border-r-2 border-green-500"
+                    : "text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 hover:bg-gray-100/60 dark:hover:bg-zinc-800/60 border-r-2 border-transparent"
                 }`}
               >
                 {cat}
@@ -143,18 +143,18 @@ export default function BlockPickerModal({
 
           <div className="flex-1 overflow-y-auto p-3 min-h-0 min-w-0">
             {filtered.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-8">No blocks match your search.</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 text-center py-8">No blocks match your search.</p>
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2">
                 {filtered.map((block) => (
                   <button
                     key={block.id}
                     onClick={() => onSelect(block)}
-                    className="flex flex-col items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-950 p-2 hover:border-green-600/50 hover:bg-zinc-800 transition-colors"
+                    className="flex flex-col items-center gap-1 rounded-lg border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 p-2 hover:border-green-600/50 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                     title={block.name}
                   >
                     <BlockIcon block={block} size={32} />
-                    <span className="text-[10px] text-zinc-400 text-center leading-tight line-clamp-2">
+                    <span className="text-[10px] text-gray-500 dark:text-zinc-400 text-center leading-tight line-clamp-2">
                       {block.name}
                     </span>
                   </button>
