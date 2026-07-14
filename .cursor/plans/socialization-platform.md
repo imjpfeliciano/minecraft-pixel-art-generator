@@ -1,13 +1,7 @@
 ---
 name: Socialization Platform
-overview: "Add a full social layer to the pixel art generator: new landing page, public gallery/catalogue, Clerk auth, Firestore + Firebase Storage backend, creation pages, user profiles, likes, comments, and forks — while keeping the anonymous creation flow intact."
+overview: "Add a full social layer to the pixel art generator: public gallery/catalogue, Clerk auth, Firestore + Firebase Storage backend, creation pages, user profiles, likes, comments, and forks — while keeping the anonymous creation flow intact. The landing page and routing reshuffle are complete (see landing-page.md)."
 todos:
-  - id: routing-reshuffle
-    content: Move existing editor from app/page.tsx to app/create/page.tsx; replace app/page.tsx with new landing page
-    status: pending
-  - id: landing-page
-    content: Build new landing page (/) with hero, features, how-it-works, community preview, and global stats sections
-    status: pending
   - id: deps
     content: Install @clerk/nextjs, firebase, firebase-admin; set up .env.local with Clerk + Firebase keys
     status: pending
