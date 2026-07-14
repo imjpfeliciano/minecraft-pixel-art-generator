@@ -36,9 +36,9 @@ export default function HowItWorksSection() {
       className="border-y border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50"
     >
       <div className="mx-auto max-w-7xl px-8 py-12">
-        <p className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-gray-500">
+        <h2 className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-gray-500">
           {t("howTitle")}
-        </p>
+        </h2>
         <div className="flex items-stretch gap-0">
           {STEPS.map((step, i) => (
             <div key={step.step} className="flex flex-1 items-start gap-0">
