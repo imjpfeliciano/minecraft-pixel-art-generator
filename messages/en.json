@@ -134,7 +134,7 @@
     "heroHeadline": "Convert any image into",
     "heroHeadlineHighlight": "pixel-perfect",
     "heroHeadlineSuffix": "block art",
-    "heroSubheadline": "Auto-generate block-accurate schematics from any photo. Pick your palette, set your dimensions, and export a {code} file ready to build.",
+    "heroSubheadline": "Auto-generate block-accurate schematics from any photo. Pick your palette, set your dimensions, and export a <code>.litematic</code> file ready to build.",
     "heroCtaLabel": "Start Creating",
     "heroCompareHint": "Drag the handle to compare original vs. block art",
     "howTitle": "How it works",

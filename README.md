@@ -70,6 +70,58 @@ pnpm build
 > };
 > ```
 
+The core generator runs entirely in the browser and needs no configuration. Accounts, saving, and the gallery need Clerk and Firebase — see below.
+
+---
+
+## Firebase setup
+
+Saved creations live in Firestore, with preview images and block grids in Firebase Storage. **The browser never talks to Firebase directly**: every read and write goes through a Next.js Route Handler using the Admin SDK, so the only credentials the app needs are a server-side service account. There is no Firebase web config and no `firebase` client package.
+
+**1. Create the project resources**
+
+In the [Firebase Console](https://console.firebase.google.com):
+
+- **Build → Firestore Database → Create database.** Pick a region close to your users; start in production mode, since security rules deny all direct client access anyway.
+- **Build → Storage → Get started.** Note the bucket name, usually `<project-id>.firebasestorage.app`.
+
+**2. Generate a service account key**
+
+**Project settings → Service accounts → Generate new private key.** This downloads a JSON file. Treat it like a password: it bypasses all security rules. Do not commit it.
+
+**3. Fill in `.env.local`**
+
+Copy `.env.example` to `.env.local` if you have not already, then map three fields out of that JSON:
+
+| JSON field | Environment variable |
+| --- | --- |
+| `project_id` | `FIREBASE_PROJECT_ID` |
+| `client_email` | `FIREBASE_CLIENT_EMAIL` |
+| `private_key` | `FIREBASE_PRIVATE_KEY` |
+
+Plus the bucket from step 1:
+
+```bash
+FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_STORAGE_HOST=firebasestorage.googleapis.com
+```
+
+`FIREBASE_PRIVATE_KEY` is the fiddly one. Paste the value on a single line, keep the literal `\n` sequences exactly as they appear in the JSON, and wrap the whole thing in double quotes:
+
+```bash
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----\n"
+```
+
+**4. Verify**
+
+```bash
+pnpm verify-firebase
+```
+
+This does a real write, read, and delete against both Firestore and Storage, so a pass means the service account actually has the access the app needs. It names the specific variable or console step to fix on failure.
+
+**Deploying:** add the same variables in your host's environment settings. On Vercel, paste the private key with its `\n` sequences intact — the app un-escapes them at runtime.
+
 ---
 
 ## Usage walkthrough
