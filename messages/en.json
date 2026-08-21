@@ -125,6 +125,38 @@
     "system": "System",
     "switchTo": "Switch to {label} mode"
   },
+  "UserMenu": {
+    "myProfile": "My Profile",
+    "myCreations": "My Creations",
+    "setNickname": "Set nickname",
+    "signOut": "Sign out"
+  },
+  "Sidebar": {
+    "create": "Create",
+    "myCreations": "My Creations",
+    "explore": "Explore"
+  },
+  "Onboarding": {
+    "title": "Set your nickname",
+    "description": "Your nickname is your public handle — it appears in your profile URL and on your creations.",
+    "nicknameLabel": "Nickname",
+    "nicknamePlaceholder": "e.g. creeper-slayer",
+    "nicknameHint": "3–30 characters. Lowercase letters, digits, underscores, or hyphens.",
+    "checking": "Checking…",
+    "available": "Available ✓",
+    "taken": "Already taken",
+    "displayNameLabel": "Display name",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell the community about yourself (optional)",
+    "save": "Save and continue",
+    "saving": "Saving…"
+  },
+  "Dashboard": {
+    "title": "My Creations",
+    "emptyHeading": "No creations yet",
+    "emptyBody": "Head to the editor and generate your first pixel art schematic.",
+    "emptyCta": "Start creating"
+  },
   "Landing": {
     "navCreate": "Create",
     "navGallery": "Gallery",

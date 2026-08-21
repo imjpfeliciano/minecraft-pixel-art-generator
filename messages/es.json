@@ -125,6 +125,38 @@
     "system": "Sistema",
     "switchTo": "Cambiar a modo {label}"
   },
+  "UserMenu": {
+    "myProfile": "Mi Perfil",
+    "myCreations": "Mis Creaciones",
+    "setNickname": "Establecer apodo",
+    "signOut": "Cerrar sesión"
+  },
+  "Sidebar": {
+    "create": "Crear",
+    "myCreations": "Mis Creaciones",
+    "explore": "Explorar"
+  },
+  "Onboarding": {
+    "title": "Elige tu apodo",
+    "description": "Tu apodo es tu identificador público — aparece en la URL de tu perfil y en tus creaciones.",
+    "nicknameLabel": "Apodo",
+    "nicknamePlaceholder": "p.ej. creeper-slayer",
+    "nicknameHint": "3–30 caracteres. Solo letras minúsculas, dígitos, guiones bajos o guiones.",
+    "checking": "Verificando…",
+    "available": "Disponible ✓",
+    "taken": "Ya está en uso",
+    "displayNameLabel": "Nombre para mostrar",
+    "bioLabel": "Biografía",
+    "bioPlaceholder": "Cuéntale a la comunidad sobre ti (opcional)",
+    "save": "Guardar y continuar",
+    "saving": "Guardando…"
+  },
+  "Dashboard": {
+    "title": "Mis Creaciones",
+    "emptyHeading": "Sin creaciones todavía",
+    "emptyBody": "Ve al editor y genera tu primer esquema de arte pixel.",
+    "emptyCta": "Empezar a crear"
+  },
   "Landing": {
     "navCreate": "Crear",
     "navGallery": "Galería",

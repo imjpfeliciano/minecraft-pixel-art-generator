@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton } from "@clerk/nextjs";
+import UserMenu from "./UserMenu";
 import ThemeToggle from "./ThemeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { trackNavCreateClicked, trackNavCtaClicked } from "../_lib/landing-analytics";
@@ -61,7 +62,7 @@ export default function NavBar() {
             </Link>
           </Show>
           <Show when="signed-in">
-            <UserButton />
+            <UserMenu variant="nav" />
           </Show>
         </div>
       </div>
