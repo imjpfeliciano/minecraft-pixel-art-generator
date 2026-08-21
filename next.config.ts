@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
         hostname: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_HOST ?? "firebasestorage.googleapis.com",
         pathname: "/**",
       },
+      // Clerk avatar CDN
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+        pathname: "/**",
+      },
     ],
   },
 };
