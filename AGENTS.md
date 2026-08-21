@@ -114,6 +114,27 @@ Components in `app/_components/ui/` are built on **`@base-ui/react`**, not Radix
 - **Hover states use `hover:` utilities**, not `focus:` — base-ui does not forward `:focus` to item elements in the same way Radix does. Always add `hover:bg-*` classes alongside `focus:bg-*` on interactive items.
 - `img.clerk.com` and Firebase Storage hosts must be listed in `next.config.ts` `images.remotePatterns` before `next/image` will serve them.
 
+### Floating elements must have explicit background colors (critical)
+
+Tailwind CSS v4 semantic tokens (`bg-popover`, `bg-background`, `bg-muted`, `text-popover-foreground`, etc.) are **not reliably resolved** in floating/portal-rendered elements (dropdowns, dialogs, tooltips, popovers, sheets). These components render outside the normal component tree and may not inherit the CSS variable scope correctly.
+
+**Rule: always use concrete Tailwind utilities on every floating element:**
+
+```tsx
+// ❌ Semantic tokens — renders transparent in portal context
+className="bg-popover text-popover-foreground ring-1 ring-foreground/10"
+
+// ✅ Explicit colors — always opaque and theme-aware
+className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 shadow-xl ring-1 ring-gray-200 dark:ring-zinc-700"
+```
+
+This applies to **all** components in `app/_components/ui/` that use a portal or fixed positioning:
+- `DropdownMenuContent` → `bg-white dark:bg-zinc-900 shadow-xl ring-1 ring-gray-200 dark:ring-zinc-700`
+- `DialogContent` (`DialogPrimitive.Popup`) → same pattern
+- Any future `TooltipContent`, `PopoverContent`, `SheetContent`, `SelectContent`, etc.
+
+The footer/secondary surfaces inside floating elements (`DialogFooter`, section dividers) must also avoid `bg-muted` — use `bg-gray-50 dark:bg-zinc-800/60` or similar.
+
 ---
 
 ## State Management

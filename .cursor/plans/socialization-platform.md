@@ -18,87 +18,99 @@ milestones:
 
   - id: m1
     name: "M1 · Identity layer"
-    status: in_progress
+    status: completed
     deliverable: "A Clerk sign-in creates (or re-links) an internal user record in Firestore. GET /api/me returns the user's internal id, email, nickname, and bio. The dashboard and onboarding routes are protected."
     todos:
       - id: creation-types
         content: Create app/_lib/creation.ts — UserProfile / Creation / CreationConfig types and Zod-free validators
-        status: pending
+        status: completed
       - id: identity-resolve
         content: Create app/_lib/server/identity.ts — resolveUser() email-reconciliation flow, authLinks, emailIndex, publicMetadata cache
-        status: pending
+        status: completed
       - id: server-auth-helpers
-        content: Create app/_lib/server/auth.ts — requireUser(), requireNickname(), requireOwnership(), jsonError()
-        status: pending
+        content: Create app/_lib/server/auth.ts — requireUser(), requireNickname(), ApiError, withApi(), parseJsonBody()
+        status: completed
       - id: nickname-lib
         content: Create app/_lib/server/nicknames.ts — slug validation, reserved-word blocklist, transactional claim/release
-        status: pending
+        status: completed
       - id: proxy-protect
-        content: Update proxy.ts with createRouteMatcher — protect /dashboard, /onboarding, and mutating /api/creations + /api/me routes
-        status: pending
+        content: "Routes protected via auth() calls in layouts and pages — createRouteMatcher is deprecated in Clerk v7 and was not used"
+        status: completed
       - id: api-me
         content: Build GET /api/me, PATCH /api/me (bio + displayName + nickname claim), GET /api/me/nickname-available, GET /api/users/[nickname]
-        status: pending
+        status: completed
 
   - id: m2
     name: "M2 · Authenticated shell"
-    status: pending
-    deliverable: "A signed-in user lands on /onboarding to claim a nickname, then sees /dashboard with a persistent sidebar. NavBar shows My Creations link when signed in. Both pages are correctly protected and indexed (noindex on dashboard)."
+    status: completed
+    deliverable: "A signed-in user lands on /onboarding to claim a nickname, then sees /dashboard with a persistent sidebar. NavBar and /create header show UserMenu when signed in. Both pages are correctly protected and indexed (noindex on dashboard)."
     todos:
       - id: dropdown-dep
         content: shadcn dropdown-menu component added to app/_components/ui/dropdown-menu.tsx
         status: completed
       - id: user-menu
-        content: Build UserMenu — custom avatar button + DropdownMenu; variant=nav (NavBar) and variant=sidebar (AppSidebar); avatar from useUser(), nickname from GET /api/me; sign-out via useClerk().signOut(); replaces Clerk UserButton in both contexts
-        status: pending
+        content: "Build UserMenu — custom avatar button + DropdownMenu (base-ui); variant=nav and variant=sidebar; avatar from useUser(), nickname from GET /api/me; sign-out via useClerk().signOut(); hover states via hover: utilities (not focus:)"
+        status: completed
       - id: navbar-swap
-        content: Replace <Show when="signed-in"><UserButton /></Show> in NavBar with <UserMenu variant="nav" />; add My Creations item to the dropdown; signed-out state unchanged
-        status: pending
+        content: Replace <UserButton /> in NavBar with <UserMenu variant="nav" />; My Creations in dropdown
+        status: completed
       - id: app-sidebar
-        content: Build AppSidebar — server component rail with logo + nav links; SidebarNav client child for active highlighting + <UserMenu variant="sidebar" /> at bottom
-        status: pending
+        content: Build AppSidebar (server) + SidebarNav (client) — logo, nav links with active highlighting, UserMenu variant=sidebar at bottom
+        status: completed
       - id: auth-layout
-        content: Create app/(authenticated)/layout.tsx wrapping /dashboard and /onboarding with the AppSidebar shell
-        status: pending
+        content: Create app/(authenticated)/layout.tsx — auth() guard + AppSidebar shell wrapping /dashboard and /onboarding
+        status: completed
       - id: onboarding-page
-        content: Build /onboarding — NicknameForm with debounced availability check, auto-suggested value, confirm button; redirect to /dashboard on save; noindex
-        status: pending
+        content: Build /onboarding — NicknameForm with debounced availability check, auto-suggested value, display name + bio fields; redirect to /dashboard on save
+        status: completed
       - id: dashboard-shell
-        content: Build /dashboard shell — empty state with CTA to /create, correct metadata (noindex), sidebar wired; no creation data yet
-        status: pending
+        content: "Build /dashboard shell — server page (resolveUser + redirects) + DashboardEmptyState client child (useTranslations); noindex; redirects to /onboarding when nickname is null"
+        status: completed
+      - id: create-header-auth
+        content: Add My Creations link and UserMenu to /create editor header for signed-in users
+        status: completed
       - id: i18n-m2
-        content: Add en.json + es.json keys for UserMenu, sidebar, onboarding, and dashboard empty state
-        status: pending
+        content: Add en.json + es.json keys for UserMenu, Sidebar, Onboarding, and Dashboard namespaces
+        status: completed
+      - id: fixes-m2
+        content: "Add --color-accent tokens to globals.css (shadcn hover states); add img.clerk.com to next.config.ts remotePatterns (next/image); solid bg on DropdownMenuContent; fix getTranslations → useTranslations pattern"
+        status: completed
 
   - id: m3
     name: "M3 · Save a creation"
-    status: pending
+    status: completed
     deliverable: "A signed-in user with a nickname can click Save in the /create editor, fill in a title/tags/visibility, and the creation appears in their dashboard. Private saves work without a nickname; publishing requires one."
     todos:
       - id: grid-codec
         content: Create app/_lib/creation-grid.ts — encodeGrid / decodeGrid, palette + pako-gzipped index array
-        status: pending
+        status: completed
       - id: thumbnail
-        content: Create app/_lib/thumbnail.ts — offscreen canvas at 4px/block producing a PNG Blob from average block colors
-        status: pending
+        content: Create app/_lib/thumbnail.ts — OffscreenCanvas at 4px/block producing a PNG Blob from block rgb colors
+        status: completed
       - id: api-creations-post
-        content: Build POST /api/creations — multipart (metadata + preview + grid), resolveUser, validate, upload to Storage, write Firestore doc
-        status: pending
+        content: Build POST /api/creations — multipart (metadata + preview + grid), requireUser, validate, upload to Storage, write Firestore doc, increment user counters
+        status: completed
+      - id: next-config
+        content: Add storage.googleapis.com to next.config.ts remotePatterns for next/image
+        status: completed
       - id: visibility-toggle
-        content: Add inline visibility toggle (Private | Public pill) + Save button to the /create action bar; toggle defaults to private; initialises from creation.visibility when loading via ?creation=id
-        status: pending
+        content: Add inline visibility toggle (Private | Public pill) + Save button to the /create action bar; toggle defaults to private
+        status: completed
       - id: save-modal
-        content: Build SaveCreationModal — title, description, TagSelect, read-only visibility summary when opened from /create; full VisibilityToggle when in edit mode from /dashboard; auth-gated with Clerk SignInButton
-        status: pending
+        content: Build SaveCreationModal — title, description, TagSelect, visibility toggle, auth-gated (Clerk SignInButton), success state, 409 nickname_required hint
+        status: completed
       - id: creation-card
-        content: Build CreationCard — public and owner variants (thumbnail, title, tags, dimensions, visibility badge)
-        status: pending
+        content: Build CreationCard — owner variant (thumbnail, title, tags, dimensions, visibility badge, delete placeholder) and public variant (with author link)
+        status: completed
       - id: dashboard-creations
-        content: Populate /dashboard with the real creation grid fetched by authorId, CreationCard owner variant, noindex
-        status: pending
+        content: Populate /dashboard with real creations fetched server-side from Firestore by authorId; DashboardGrid client component handles empty state + delete
+        status: completed
+      - id: types
+        content: Add CreationJson + toCreationJson to creation.ts
+        status: completed
       - id: i18n-m3
-        content: Add en.json + es.json keys for save modal, creation card, and dashboard grid
-        status: pending
+        content: Add en.json + es.json keys for Page (saveButton, visibilityPrivate/Public), SaveModal, CreationCard, Dashboard (creationCount, deleteConfirm)
+        status: completed
 
   - id: m4
     name: "M4 · Manage creations (CRUD)"
