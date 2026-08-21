@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useUser } from "@clerk/nextjs";
 import { track } from "@vercel/analytics";
 import ImageUpload from "../_components/ImageUpload";
 import ControlPanel from "../_components/ControlPanel";
@@ -10,6 +12,7 @@ import PixelArtPreview from "../_components/PixelArtPreview";
 import BlockLegend from "../_components/BlockLegend";
 import ThemeToggle from "../_components/ThemeToggle";
 import LocaleSwitcher from "../_components/LocaleSwitcher";
+import UserMenu from "../_components/UserMenu";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -105,6 +108,7 @@ function StepTracker({ steps }: { steps: Step[] }) {
 
 export default function CreatePage() {
   const t = useTranslations("Page");
+  const { isSignedIn } = useUser();
 
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -382,6 +386,23 @@ export default function CreatePage() {
         <div className="ml-auto flex items-center gap-2">
           <LocaleSwitcher />
           <ThemeToggle />
+          {isSignedIn && (
+            <>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                My Creations
+              </Link>
+              <UserMenu variant="nav" />
+            </>
+          )}
         </div>
       </header>
 
