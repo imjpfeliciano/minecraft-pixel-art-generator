@@ -49,7 +49,10 @@
     "importInstructions": "en Minecraft → Cargar Esquemas",
     "uploadToBegin": "Sube una imagen para comenzar",
     "originalImageAlt": "Imagen original",
-    "loading3d": "Cargando visor 3D…"
+    "loading3d": "Cargando visor 3D…",
+    "saveButton": "Guardar",
+    "visibilityPrivate": "Privado",
+    "visibilityPublic": "Público"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensiones (bloques)",
@@ -155,7 +158,40 @@
     "title": "Mis Creaciones",
     "emptyHeading": "Sin creaciones todavía",
     "emptyBody": "Ve al editor y genera tu primer esquema de arte pixel.",
-    "emptyCta": "Empezar a crear"
+    "emptyCta": "Empezar a crear",
+    "creationCount": "{count, plural, one {# creación} other {# creaciones}}",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar esta creación? Esta acción no se puede deshacer."
+  },
+  "SaveModal": {
+    "title": "Guardar Creación",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ponle un nombre a tu arte pixel…",
+    "titleRequired": "El título es obligatorio.",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Describe tu creación (opcional)",
+    "tagsLabel": "Etiquetas",
+    "visibilityLabel": "Visibilidad",
+    "visibilityPrivate": "Privado",
+    "visibilityPublic": "Público",
+    "visibilityPrivateHint": "Solo tú puedes verlo.",
+    "visibilityPublicHint": "Visible para todos en la galería.",
+    "nicknameRequiredHint": "Necesitas un apodo para publicar.",
+    "nicknameSetLink": "Establecer apodo →",
+    "save": "Guardar Creación",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "signInPrompt": "Inicia sesión para guardar y compartir tus creaciones de arte pixel.",
+    "signInButton": "Iniciar sesión",
+    "successTitle": "¡Guardado!",
+    "successBody": "Tu creación ha sido guardada en tu panel.",
+    "viewDashboard": "Ver en el Panel →",
+    "errorGeneric": "Algo salió mal. Por favor, inténtalo de nuevo."
+  },
+  "CreationCard": {
+    "visibilityPublic": "Público",
+    "visibilityPrivate": "Privado",
+    "dimensions": "{w} × {h} bloques",
+    "deleteButton": "Eliminar"
   },
   "Landing": {
     "navCreate": "Crear",

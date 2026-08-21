@@ -49,7 +49,10 @@
     "importInstructions": "in Minecraft → Load Schematics",
     "uploadToBegin": "Upload an image to begin",
     "originalImageAlt": "Original image",
-    "loading3d": "Loading 3D viewer…"
+    "loading3d": "Loading 3D viewer…",
+    "saveButton": "Save",
+    "visibilityPrivate": "Private",
+    "visibilityPublic": "Public"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensions (blocks)",
@@ -155,7 +158,40 @@
     "title": "My Creations",
     "emptyHeading": "No creations yet",
     "emptyBody": "Head to the editor and generate your first pixel art schematic.",
-    "emptyCta": "Start creating"
+    "emptyCta": "Start creating",
+    "creationCount": "{count, plural, one {# creation} other {# creations}}",
+    "deleteConfirm": "Are you sure you want to delete this creation? This action cannot be undone."
+  },
+  "SaveModal": {
+    "title": "Save Creation",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Give your pixel art a name…",
+    "titleRequired": "A title is required.",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Describe your creation (optional)",
+    "tagsLabel": "Tags",
+    "visibilityLabel": "Visibility",
+    "visibilityPrivate": "Private",
+    "visibilityPublic": "Public",
+    "visibilityPrivateHint": "Only you can see this.",
+    "visibilityPublicHint": "Visible to everyone in the gallery.",
+    "nicknameRequiredHint": "You need a nickname to publish publicly.",
+    "nicknameSetLink": "Set your nickname →",
+    "save": "Save Creation",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "signInPrompt": "Sign in to save and share your pixel art creations.",
+    "signInButton": "Sign in",
+    "successTitle": "Saved!",
+    "successBody": "Your creation has been saved to your dashboard.",
+    "viewDashboard": "View in Dashboard →",
+    "errorGeneric": "Something went wrong. Please try again."
+  },
+  "CreationCard": {
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "dimensions": "{w} × {h} blocks",
+    "deleteButton": "Delete"
   },
   "Landing": {
     "navCreate": "Create",
