@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { resolveUser } from "@/app/_lib/server/identity";
-import DashboardEmptyState from "./DashboardEmptyState";
+import { getDb } from "@/app/_lib/server/firebase-admin";
+import { toCreationJson, type Creation } from "@/app/_lib/creation";
+import DashboardGrid from "./DashboardGrid";
 
 export const metadata: Metadata = {
   title: "My Creations",
@@ -13,5 +15,19 @@ export default async function DashboardPage() {
   if (!user) redirect("/sign-in");
   if (!user.nickname) redirect("/onboarding");
 
-  return <DashboardEmptyState />;
+  const db = getDb();
+  const snap = await db
+    .collection("creations")
+    .where("authorId", "==", user.userId)
+    .limit(48)
+    .get();
+
+  const creations = snap.docs
+    .map((d) => {
+      const data = { id: d.id, ...d.data() } as Creation;
+      return toCreationJson(data);
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  return <DashboardGrid initialCreations={creations} />;
 }

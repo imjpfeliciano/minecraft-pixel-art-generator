@@ -13,6 +13,7 @@ import BlockLegend from "../_components/BlockLegend";
 import ThemeToggle from "../_components/ThemeToggle";
 import LocaleSwitcher from "../_components/LocaleSwitcher";
 import UserMenu from "../_components/UserMenu";
+import SaveCreationModal from "../_components/SaveCreationModal";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -22,6 +23,7 @@ import {
 import { mapPixelsToBlocks } from "../_lib/color-matcher";
 import { loadAndResizeImage } from "../_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "../_lib/litematic-generator";
+import type { Visibility } from "../_lib/creation";
 
 // Loading placeholder for the 3D viewer — needs translations so it's a component
 function Loading3DViewer() {
@@ -147,6 +149,10 @@ export default function CreatePage() {
 
   // Preview mode: 2D canvas or 3D schematic viewer
   const [previewMode, setPreviewMode] = useState<"2d" | "3d">("2d");
+
+  // Save modal
+  const [visibility, setVisibility] = useState<Visibility>("private");
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   // Undo stack for block edits
   const [undoStack, setUndoStack] = useState<
@@ -684,9 +690,9 @@ export default function CreatePage() {
                 )}
               </div>
 
-              {/* ── Download bar ─────────────────────────────────────────────── */}
+              {/* ── Action bar ───────────────────────────────────────────────── */}
               {blockGrid.length > 0 && (
-                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3">
+                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3 flex-wrap">
                   <button
                     onClick={handleDownload}
                     className="flex items-center gap-2 rounded-xl bg-grass px-5 py-3 text-sm font-semibold text-white hover:bg-grass-hover active:scale-95 transition-all"
@@ -701,6 +707,53 @@ export default function CreatePage() {
                     <p>{t("importVia")} <span className="text-gray-700 dark:text-zinc-300 font-medium">{t("importLitematicaMod")}</span></p>
                     <p>{t("importInstructions")}</p>
                   </div>
+
+                  {/* Separator */}
+                  <div className="h-8 w-px bg-gray-200 dark:bg-zinc-700" />
+
+                  {/* Visibility toggle */}
+                  <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
+                    <button
+                      onClick={() => setVisibility("private")}
+                      className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                        visibility === "private"
+                          ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                          : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="7" width="10" height="7" rx="1" />
+                        <path d="M5 7V5a3 3 0 016 0v2" strokeLinecap="round" />
+                      </svg>
+                      {t("visibilityPrivate")}
+                    </button>
+                    <button
+                      onClick={() => setVisibility("public")}
+                      className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                        visibility === "public"
+                          ? "bg-grass text-white"
+                          : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                      }`}
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="8" cy="8" r="6" />
+                        <path d="M8 2a10.5 10.5 0 000 12M8 2a10.5 10.5 0 010 12M2 8h12" strokeLinecap="round" />
+                      </svg>
+                      {t("visibilityPublic")}
+                    </button>
+                  </div>
+
+                  {/* Save button */}
+                  <button
+                    onClick={() => setShowSaveModal(true)}
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-zinc-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:border-grass hover:text-grass dark:hover:border-grass dark:hover:text-grass transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    {t("saveButton")}
+                  </button>
                 </div>
               )}
             </>
@@ -746,6 +799,26 @@ export default function CreatePage() {
           )}
         </main>
       </div>
+
+      {/* ── Save creation modal ───────────────────────────────────────── */}
+      {blockGrid.length > 0 && (
+        <SaveCreationModal
+          open={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          blockGrid={blockGrid}
+          initialVisibility={visibility}
+          config={{
+            orientation,
+            width,
+            height,
+            schematicName,
+            fillBlockId,
+            foundationEnabled,
+            foundationBlockId,
+            selectedCategories,
+          }}
+        />
+      )}
     </div>
   );
 }

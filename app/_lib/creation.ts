@@ -103,6 +103,55 @@ export interface Creation {
   updatedAt: Timestamp;
 }
 
+/** Shape returned by API and server components — Timestamps serialised to ISO strings. */
+export interface CreationJson {
+  id: string;
+  authorId: string;
+  authorNickname: string | null;
+  title: string;
+  description: string;
+  tags: string[];
+  visibility: Visibility;
+  previewImageUrl: string;
+  width: number;
+  height: number;
+  blockCount: number;
+  orientation: Orientation;
+  blockCategories: string[];
+  fillBlockId: string | null;
+  foundation: CreationFoundation;
+  schematicName: string;
+  downloadCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function toCreationJson(c: Creation): CreationJson {
+  return {
+    id: c.id,
+    authorId: c.authorId,
+    authorNickname: c.authorNickname,
+    title: c.title,
+    description: c.description,
+    tags: c.tags,
+    visibility: c.visibility,
+    previewImageUrl: c.previewImageUrl,
+    width: c.width,
+    height: c.height,
+    blockCount: c.blockCount,
+    orientation: c.orientation,
+    blockCategories: c.blockCategories,
+    fillBlockId: c.fillBlockId,
+    foundation: c.foundation,
+    schematicName: c.schematicName,
+    downloadCount: c.downloadCount,
+    publishedAt: c.publishedAt?.toDate().toISOString() ?? null,
+    createdAt: c.createdAt.toDate().toISOString(),
+    updatedAt: c.updatedAt.toDate().toISOString(),
+  };
+}
+
 // ── Validators ────────────────────────────────────────────────────────────────
 
 const AVAILABLE_TAG_SLUGS = new Set(AVAILABLE_TAGS.map((t) => t.slug));
