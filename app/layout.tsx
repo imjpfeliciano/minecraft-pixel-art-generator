@@ -1,4 +1,6 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next"
 import ThemeProvider from "./_components/ThemeProvider";
 import I18nProvider from "./_components/I18nProvider";
@@ -52,25 +54,31 @@ export const metadata: Metadata = {
   },
 };
 
-const antiFlashScript = `(function(){var p=localStorage.getItem('theme-preference')||'light';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const themePref = cookieStore.get("theme-preference")?.value ?? "light";
+  const isDark =
+    themePref === "dark" ||
+    (themePref === "system" &&
+      // system preference can't be read server-side; default to light
+      false);
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
-      </head>
+    <html lang="en" className={`antialiased${isDark ? " dark" : ""}`} suppressHydrationWarning>
+      <head />
       <body>
-        <ThemeProvider>
+        <ClerkProvider afterSignOutUrl="/">
+          <ThemeProvider>
           <I18nProvider>
-            {children}
+          {children}
           </I18nProvider>
-        </ThemeProvider>
-        <Analytics />
+          </ThemeProvider>
+          <Analytics />
+        </ClerkProvider>
       </body>
     </html>
   );

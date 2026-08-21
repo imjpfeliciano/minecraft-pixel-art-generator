@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import ThemeToggle from "./ThemeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { trackNavCreateClicked, trackNavCtaClicked } from "../_lib/landing-analytics";
@@ -45,13 +46,23 @@ export default function NavBar() {
         <div className="flex items-center gap-3">
           <LocaleSwitcher />
           <ThemeToggle />
-          <Link
-            href="/create"
-            onClick={trackNavCtaClicked}
-            className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-grass-hover"
-          >
-            {t("navCta")}
-          </Link>
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100">
+                Sign in
+              </button>
+            </SignInButton>
+            <Link
+              href="/create"
+              onClick={trackNavCtaClicked}
+              className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-grass-hover"
+            >
+              {t("navCta")}
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
       </div>
     </nav>
