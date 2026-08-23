@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { CreationJson } from "@/app/_lib/creation";
 import { AVAILABLE_TAGS } from "@/app/_lib/tags";
+import {
+  trackCreationOpenedInEditor,
+  trackCreationAuthorClicked,
+} from "@/app/_lib/social-analytics";
 
 interface CreationCardProps {
   creation: CreationJson;
@@ -61,7 +65,7 @@ export default function CreationCard({
               href={`/create?creation=${creation.id}`}
               title={t("openInEditor")}
               className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-gray-700 hover:bg-white transition-colors"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); trackCreationOpenedInEditor("dashboard"); }}
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M10 3h3v3M13 3l-6 6M6 4H3v9h9v-3" strokeLinecap="round" strokeLinejoin="round" />
@@ -137,7 +141,11 @@ export default function CreationCard({
           </div>
         )}
         {variant === "public" && creation.authorNickname && (
-          <Link href={`/u/${creation.authorNickname}`} className="text-[10px] text-grass hover:underline">
+          <Link
+            href={`/u/${creation.authorNickname}`}
+            className="text-[10px] text-grass hover:underline"
+            onClick={trackCreationAuthorClicked}
+          >
             @{creation.authorNickname}
           </Link>
         )}

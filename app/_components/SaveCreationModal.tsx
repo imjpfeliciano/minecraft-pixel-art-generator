@@ -15,6 +15,13 @@ import {
 } from "@/app/_components/ui/dialog";
 import { encodeGrid } from "@/app/_lib/creation-grid";
 import { generateThumbnail } from "@/app/_lib/thumbnail";
+import {
+  trackCreationSaveOpened,
+  trackCreationSaved,
+  trackCreationSaveFailed,
+  trackCreationPublishBlocked,
+  trackCreationSignInPrompted,
+} from "@/app/_lib/social-analytics";
 import type { MinecraftBlock } from "@/app/_lib/blocks";
 import type { CreationJson, Orientation, Visibility } from "@/app/_lib/creation";
 import { AVAILABLE_TAGS } from "@/app/_lib/tags";
@@ -44,7 +51,7 @@ interface SaveCreationModalProps {
    *  - if blockGrid is also present → multipart (re-encode grid + thumbnail)
    *  - if blockGrid is absent → JSON-only (metadata update from dashboard)
    */
-  existingCreation?: Pick<CreationJson, "id" | "title" | "description" | "tags" | "visibility">;
+  existingCreation?: Pick<CreationJson, "id" | "title" | "description" | "tags" | "visibility" | "orientation" | "width" | "height">;
   /** Called with the saved/updated creation id on success. */
   onSaved?: (id: string) => void;
 }
@@ -73,9 +80,14 @@ export default function SaveCreationModal({
   const [savedId, setSavedId] = useState<string | null>(null);
   const [needsNickname, setNeedsNickname] = useState(false);
 
+  useEffect(() => {
+    if (open && isSignedIn === false) trackCreationSignInPrompted();
+  }, [open, isSignedIn]);
+
   // Re-initialise form whenever the modal opens
   useEffect(() => {
     if (!open) return;
+    trackCreationSaveOpened(isEditMode ? "edit" : "create");
     if (existingCreation) {
       setTitle(existingCreation.title);
       setDescription(existingCreation.description ?? "");
@@ -102,7 +114,11 @@ export default function SaveCreationModal({
   }
 
   async function handleSave() {
-    if (!title.trim()) { setError(t("titleRequired")); return; }
+    if (!title.trim()) {
+      setError(t("titleRequired"));
+      trackCreationSaveFailed(isEditMode ? "edit" : "create", "validation");
+      return;
+    }
     setError(null);
     setNeedsNickname(false);
     setIsSubmitting(true);
@@ -163,18 +179,30 @@ export default function SaveCreationModal({
 
       if (res.status === 409 && data?.error?.code === "nickname_required") {
         setNeedsNickname(true);
+        trackCreationPublishBlocked();
         return;
       }
       if (!res.ok) {
         setError(data?.error?.message ?? t("errorGeneric"));
+        trackCreationSaveFailed(isEditMode ? "edit" : "create", "server");
         return;
       }
 
       const savedCreationId = isEditMode ? existingCreation!.id : (data.id as string);
+      trackCreationSaved({
+        mode: isEditMode ? "edit" : "create",
+        visibility,
+        tagsCount: selectedTags.length,
+        width: config?.width ?? existingCreation?.width ?? 0,
+        height: config?.height ?? existingCreation?.height ?? 0,
+        orientation: config?.orientation ?? existingCreation?.orientation ?? "",
+        hasDescription: description.trim().length > 0,
+      });
       setSavedId(savedCreationId);
       onSaved?.(savedCreationId);
     } catch {
       setError(t("errorGeneric"));
+      trackCreationSaveFailed(isEditMode ? "edit" : "create", "network");
     } finally {
       setIsSubmitting(false);
     }

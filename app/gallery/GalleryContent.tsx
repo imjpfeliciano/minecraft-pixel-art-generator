@@ -7,6 +7,11 @@ import { useTranslations } from "next-intl";
 import CreationCard from "../_components/CreationCard";
 import { AVAILABLE_TAGS } from "../_lib/tags";
 import type { CreationJson } from "../_lib/creation";
+import {
+  trackGalleryTagFiltered,
+  trackGalleryLoadMoreClicked,
+  trackGalleryCreationOpened,
+} from "../_lib/social-analytics";
 
 interface GalleryContentProps {
   initialCreations: CreationJson[];
@@ -29,6 +34,7 @@ export default function GalleryContent({
   const activeTag = searchParams.get("tag") ?? null;
 
   const handleTagClick = (slug: string | null) => {
+    trackGalleryTagFiltered(slug ?? "all");
     const params = new URLSearchParams();
     if (slug) params.set("tag", slug);
     router.push(`/gallery${slug ? `?${params.toString()}` : ""}`);
@@ -36,6 +42,7 @@ export default function GalleryContent({
 
   const handleLoadMore = useCallback(async () => {
     if (!nextCursor || isLoading) return;
+    trackGalleryLoadMoreClicked(creations.length);
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -54,7 +61,7 @@ export default function GalleryContent({
     } finally {
       setIsLoading(false);
     }
-  }, [nextCursor, isLoading, activeTag]);
+  }, [nextCursor, isLoading, activeTag, creations.length]);
 
   // Reset state when the tag param changes (server re-renders with new initialCreations)
   // Using initialTag prop change detection via a key on the parent handles this.
@@ -113,8 +120,13 @@ export default function GalleryContent({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {creations.map((creation) => (
-              <Link key={creation.id} href={`/creations/${creation.id}`} className="block">
+            {creations.map((creation, index) => (
+              <Link
+                key={creation.id}
+                href={`/creations/${creation.id}`}
+                className="block"
+                onClick={() => trackGalleryCreationOpened(index)}
+              >
                 <CreationCard creation={creation} variant="public" />
               </Link>
             ))}

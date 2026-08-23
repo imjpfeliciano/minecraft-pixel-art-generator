@@ -8,6 +8,7 @@ import PixelArtPreview from "../../_components/PixelArtPreview";
 import { decodeGrid } from "../../_lib/creation-grid";
 import type { CreationJson } from "../../_lib/creation";
 import type { MinecraftBlock } from "../../_lib/blocks";
+import { trackCreationPreviewTabChanged } from "../../_lib/social-analytics";
 
 const SchematicViewer3D = dynamic(
   () => import("../../_components/SchematicViewer3D"),
@@ -53,6 +54,7 @@ export default function CreationPreviewPanel({ creation }: CreationPreviewPanelP
 
   const handleTabChange = async (next: PreviewTab) => {
     if (next !== "image") await ensureGrid();
+    trackCreationPreviewTabChanged(next);
     setTab(next);
   };
 

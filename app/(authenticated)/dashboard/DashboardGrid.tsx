@@ -5,6 +5,10 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import CreationCard from "@/app/_components/CreationCard";
 import SaveCreationModal from "@/app/_components/SaveCreationModal";
+import {
+  trackCreationVisibilityToggled,
+  trackCreationDeleted,
+} from "@/app/_lib/social-analytics";
 import type { CreationJson } from "@/app/_lib/creation";
 
 interface DashboardGridProps {
@@ -22,6 +26,7 @@ export default function DashboardGrid({ initialCreations }: DashboardGridProps) 
     if (!confirm(t("deleteConfirm"))) return;
     const res = await fetch(`/api/creations/${id}`, { method: "DELETE" });
     if (res.ok) {
+      trackCreationDeleted();
       setCreations((prev) => prev.filter((c) => c.id !== id));
     }
   }
@@ -42,7 +47,9 @@ export default function DashboardGrid({ initialCreations }: DashboardGridProps) 
       body: JSON.stringify({ visibility: newVisibility }),
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      trackCreationVisibilityToggled(newVisibility);
+    } else {
       // Revert on error
       setCreations((prev) =>
         prev.map((c) => (c.id === creation.id ? { ...c, visibility: creation.visibility } : c)),

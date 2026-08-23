@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import {
+  trackOnboardingNicknameClaimed,
+  trackOnboardingNicknameClaimFailed,
+} from "@/app/_lib/social-analytics";
 
 /** Client-side slug: mirrors the server-side suggestNickname logic. */
 function clientSlug(s: string): string {
@@ -113,11 +117,17 @@ export default function OnboardingPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body?.error?.message ?? "Something went wrong. Please try again.");
+        trackOnboardingNicknameClaimFailed();
         return;
       }
 
+      trackOnboardingNicknameClaimed({
+        hasDisplayName: displayName.trim().length > 0,
+        hasBio: bio.trim().length > 0,
+      });
       router.push("/dashboard");
     } catch {
+      trackOnboardingNicknameClaimFailed();
       setError("Something went wrong. Please try again.");
     } finally {
       setSaving(false);
