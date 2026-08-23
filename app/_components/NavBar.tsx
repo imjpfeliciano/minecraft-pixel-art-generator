@@ -7,6 +7,7 @@ import UserMenu from "./UserMenu";
 import ThemeToggle from "./ThemeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { trackNavCreateClicked, trackNavCtaClicked } from "../_lib/landing-analytics";
+import NewBadge from "./NewBadge";
 
 export default function NavBar() {
   const t = useTranslations("Landing");
@@ -37,9 +38,16 @@ export default function NavBar() {
           </Link>
           <Link
             href="/gallery"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
             {t("navGallery")}
+            <NewBadge />
+          </Link>
+          <Link
+            href="/changelog"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          >
+            {t("navChangelog")}
           </Link>
         </div>
 
@@ -49,8 +57,9 @@ export default function NavBar() {
             <LocaleSwitcher />
             <ThemeToggle />
             <SignInButton mode="modal">
-              <button className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100">
+              <button className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100">
                 {t("signIn")}
+                <NewBadge />
               </button>
             </SignInButton>
             <Link

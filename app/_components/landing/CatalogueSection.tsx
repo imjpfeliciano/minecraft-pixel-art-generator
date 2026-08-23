@@ -10,6 +10,7 @@ import {
 } from "../../_lib/landing-analytics";
 import type { CreationJson } from "../../_lib/creation";
 import { AVAILABLE_TAGS } from "../../_lib/tags";
+import NewBadge from "../NewBadge";
 
 interface CatalogueSectionProps {
   creations: CreationJson[];
@@ -83,9 +84,7 @@ export default function CatalogueSection({ creations }: CatalogueSectionProps) {
 
         {creations.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-gray-200 py-16 text-center dark:border-gray-700">
-            <p className="text-gray-500 dark:text-gray-400">
-              No creations published yet — be the first!
-            </p>
+            <p className="text-gray-500 dark:text-gray-400">{t("catalogueEmpty")}</p>
             <Link
               href="/create"
               className="rounded-lg bg-grass px-5 py-2.5 text-sm font-semibold text-white hover:bg-grass-hover transition-colors"
@@ -103,10 +102,11 @@ export default function CatalogueSection({ creations }: CatalogueSectionProps) {
             <div className="mt-8 flex justify-center">
               <Link
                 href="/gallery"
-                className="rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 onClick={trackLandingCatalogueViewAllClicked}
               >
                 {t("catalogueViewAll")}
+                <NewBadge />
               </Link>
             </div>
           </>

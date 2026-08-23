@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import UserMenu from "./UserMenu";
+import NewBadge from "./NewBadge";
 
 const navLinks = [
   {
@@ -64,6 +65,7 @@ export default function SidebarNav() {
                 {icon}
               </span>
               {t(labelKey)}
+              {href === "/gallery" ? <NewBadge className="ml-auto" /> : null}
             </Link>
           );
         })}
