@@ -217,7 +217,7 @@
     "loading": "Cargando…",
     "empty": "Aún no hay creaciones públicas. ¡Sé el primero en publicar!",
     "emptyFiltered": "No se encontraron creaciones para esta etiqueta.",
-    "creationCount": "{count, plural, one {# schematic} other {# schematics}}"
+    "creationCount": "{count, plural, one {# esquema} other {# esquemas}}"
   },
   "CreationDetail": {
     "notFound": "Creación no encontrada",
@@ -228,7 +228,12 @@
     "downloadError": "No se pudo generar el schematic. Por favor, inténtalo de nuevo.",
     "privateNotice": "Esta creación es privada.",
     "publishedAt": "Publicado",
-    "viewProfile": "Ver perfil"
+    "viewProfile": "Ver perfil",
+    "sizeLabel": "Tamaño",
+    "sizeValue": "{w} × {h} bloques",
+    "orientationLabel": "Orientación",
+    "downloadsLabel": "Descargas",
+    "createYourOwn": "Crea el tuyo →"
   },
   "Profile": {
     "notFound": "Perfil no encontrado",

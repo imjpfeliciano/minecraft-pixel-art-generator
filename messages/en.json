@@ -228,7 +228,12 @@
     "downloadError": "Failed to generate the schematic. Please try again.",
     "privateNotice": "This creation is private.",
     "publishedAt": "Published",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "sizeLabel": "Size",
+    "sizeValue": "{w} × {h} blocks",
+    "orientationLabel": "Orientation",
+    "downloadsLabel": "Downloads",
+    "createYourOwn": "Create your own →"
   },
   "Profile": {
     "notFound": "Profile not found",
