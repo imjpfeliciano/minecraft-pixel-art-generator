@@ -4,6 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSectionTracking } from "../../_lib/hooks/useSectionTracking";
+import {
+  trackLandingCatalogueCreationClicked,
+  trackLandingCatalogueViewAllClicked,
+} from "../../_lib/landing-analytics";
 import type { CreationJson } from "../../_lib/creation";
 import { AVAILABLE_TAGS } from "../../_lib/tags";
 
@@ -11,7 +15,7 @@ interface CatalogueSectionProps {
   creations: CreationJson[];
 }
 
-function CreationPreviewCard({ creation }: { creation: CreationJson }) {
+function CreationPreviewCard({ creation, position }: { creation: CreationJson; position: number }) {
   const tagLabels = creation.tags
     .map((slug) => AVAILABLE_TAGS.find((t) => t.slug === slug)?.label)
     .filter(Boolean) as string[];
@@ -20,6 +24,7 @@ function CreationPreviewCard({ creation }: { creation: CreationJson }) {
     <Link
       href={`/creations/${creation.id}`}
       className="group overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 transition-shadow hover:shadow-lg"
+      onClick={() => trackLandingCatalogueCreationClicked(position)}
     >
       <div className="relative aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
         <Image
@@ -91,14 +96,15 @@ export default function CatalogueSection({ creations }: CatalogueSectionProps) {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-6">
-              {creations.map((creation) => (
-                <CreationPreviewCard key={creation.id} creation={creation} />
+              {creations.map((creation, index) => (
+                <CreationPreviewCard key={creation.id} creation={creation} position={index} />
               ))}
             </div>
             <div className="mt-8 flex justify-center">
               <Link
                 href="/gallery"
                 className="rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                onClick={trackLandingCatalogueViewAllClicked}
               >
                 {t("catalogueViewAll")}
               </Link>
