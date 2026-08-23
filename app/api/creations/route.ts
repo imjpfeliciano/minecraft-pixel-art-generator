@@ -4,15 +4,100 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, withApi, ApiError } from "@/app/_lib/server/auth";
+import { resolveUser } from "@/app/_lib/server/identity";
 import {
   validateTitle,
   validateDescription,
   validateTags,
   validateVisibility,
+  toCreationJson,
   type Creation,
   type Orientation,
   type CreationFoundation,
 } from "@/app/_lib/creation";
+
+// ── GET /api/creations ────────────────────────────────────────────────────────
+// Supports:
+//   scope=public (default) | mine
+//   tag=<slug>             (only for public scope)
+//   cursor=<ISO string>    (publishedAt of last seen doc, for load-more)
+//   limit=<n>              (default 24, max 48)
+//
+// Requires composite Firestore indexes:
+//   (visibility ASC, publishedAt DESC)
+//   (visibility ASC, tags ARRAY, publishedAt DESC)
+
+export const GET = withApi(async (req: Request) => {
+  const url = new URL(req.url);
+  const scope = url.searchParams.get("scope") ?? "public";
+  const tag = url.searchParams.get("tag") ?? null;
+  const cursor = url.searchParams.get("cursor") ?? null;
+  const rawLimit = parseInt(url.searchParams.get("limit") ?? "24", 10);
+  const limit = isNaN(rawLimit) ? 24 : Math.min(Math.max(rawLimit, 1), 48);
+
+  const db = getDb();
+
+  if (scope === "mine") {
+    const user = await requireUser();
+    const snap = await db
+      .collection("creations")
+      .where("authorId", "==", user.userId)
+      .get();
+
+    // Sort client-side to avoid requiring a composite index
+    const creations = snap.docs
+      .map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation))
+      .sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
+
+    return Response.json({ creations, nextCursor: null });
+  }
+
+  // ── Public scope ─────────────────────────────────────────────────────────
+  let q = db
+    .collection("creations")
+    .where("visibility", "==", "public") as FirebaseFirestore.Query;
+
+  if (tag) {
+    q = q.where("tags", "array-contains", tag);
+  }
+
+  q = q.orderBy("publishedAt", "desc");
+
+  if (cursor) {
+    const cursorDate = new Date(cursor);
+    if (!isNaN(cursorDate.getTime())) {
+      q = q.startAfter(Timestamp.fromDate(cursorDate));
+    }
+  }
+
+  // Fetch one extra doc to determine if there is a next page
+  q = q.limit(limit + 1);
+
+  let snap;
+  try {
+    snap = await q.get();
+  } catch (err: unknown) {
+    // Firestore returns FAILED_PRECONDITION when the required composite index
+    // doesn't exist yet. Return an empty list rather than crashing.
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("index") || msg.includes("FAILED_PRECONDITION")) {
+      console.warn("[api/creations] Missing Firestore composite index:", msg);
+      return Response.json({ creations: [], nextCursor: null });
+    }
+    throw err;
+  }
+
+  const hasMore = snap.docs.length > limit;
+  const resultDocs = hasMore ? snap.docs.slice(0, limit) : snap.docs;
+  const creations = resultDocs.map((d) =>
+    toCreationJson({ id: d.id, ...d.data() } as Creation),
+  );
+  const nextCursor = hasMore ? creations[creations.length - 1].publishedAt : null;
+
+  return Response.json({ creations, nextCursor });
+});
 
 export const POST = withApi(async (req: Request) => {
   const user = await requireUser();
