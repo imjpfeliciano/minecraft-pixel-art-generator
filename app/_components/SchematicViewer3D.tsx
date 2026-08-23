@@ -330,7 +330,7 @@ export default function SchematicViewer3D({
   const canvasKey = `${cols}x${rows}x${orientation}`;
 
   return (
-    <div className="relative w-full h-full bg-gray-100 dark:bg-zinc-900 rounded-lg overflow-hidden">
+    <div className="relative w-full h-full bg-[#CAE2F7] rounded-lg overflow-hidden">
       {/* 3D canvas */}
       <Canvas
         key={canvasKey}
@@ -338,7 +338,7 @@ export default function SchematicViewer3D({
         camera={{ position: cameraPos, fov: 50, near: 0.1, far: 10000 }}
         style={{ width: "100%", height: "100%" }}
       >
-        <color attach="background" args={["#27272a"]} />
+        <color attach="background" args={["#CAE2F7"]} />
         <Scene
           blockGrid={blockGrid}
           orientation={orientation}
@@ -353,10 +353,10 @@ export default function SchematicViewer3D({
 
       {/* Layer control overlay — hidden when there is only one layer */}
       {totalLayers > 1 && (
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8 bg-gradient-to-t from-zinc-950/95 to-transparent pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8 bg-gradient-to-t from-sky-300/80 to-transparent pointer-events-none">
           <div className="flex items-center justify-center gap-3 pointer-events-auto">
-            {/* Mode segmented control — always dark since it overlays the 3D canvas */}
-            <div className="flex rounded-md overflow-hidden border border-zinc-700">
+            {/* Mode segmented control — dark overlay so it stays readable on the sky background */}
+            <div className="flex rounded-md overflow-hidden border border-white/30">
               {LAYER_MODES.map(({ mode, label }) => (
                 <button
                   key={mode}
@@ -367,7 +367,7 @@ export default function SchematicViewer3D({
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     layerMode === mode
                       ? "bg-grass text-white"
-                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                      : "bg-black/30 text-white/80 hover:bg-black/40 hover:text-white"
                   }`}
                 >
                   {label}
@@ -380,17 +380,17 @@ export default function SchematicViewer3D({
               <div className="flex items-center gap-1">
                 <button
                   onClick={prevLayer}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-sm"
+                  className="w-7 h-7 flex items-center justify-center rounded bg-black/30 hover:bg-black/40 text-white transition-colors text-sm"
                   aria-label={t("prevLayer")}
                 >
                   ←
                 </button>
-                <span className="text-xs text-zinc-300 tabular-nums w-20 text-center select-none">
+                <span className="text-xs text-white tabular-nums w-20 text-center select-none drop-shadow">
                   {t("layerCounter", { current: activeLayer, total: totalLayers })}
                 </span>
                 <button
                   onClick={nextLayer}
-                  className="w-7 h-7 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-sm"
+                  className="w-7 h-7 flex items-center justify-center rounded bg-black/30 hover:bg-black/40 text-white transition-colors text-sm"
                   aria-label={t("nextLayer")}
                 >
                   →
@@ -402,7 +402,7 @@ export default function SchematicViewer3D({
       )}
 
       {/* Controls hint */}
-      <div className="absolute top-3 right-3 text-[10px] text-zinc-500 leading-relaxed text-right pointer-events-none select-none">
+      <div className="absolute top-3 right-3 text-[10px] text-white/60 leading-relaxed text-right pointer-events-none select-none drop-shadow">
         <p>{t("hintRotate")}</p>
         <p>{t("hintZoom")}</p>
         <p>{t("hintPan")}</p>
