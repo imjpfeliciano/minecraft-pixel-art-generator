@@ -54,6 +54,8 @@ interface SaveCreationModalProps {
   existingCreation?: Pick<CreationJson, "id" | "title" | "description" | "tags" | "visibility" | "orientation" | "width" | "height">;
   /** Called with the saved/updated creation id on success. */
   onSaved?: (id: string) => void;
+  /** Persist editor state before Clerk navigates away from the create page. */
+  onBeforeSignIn?: () => void;
 }
 
 export default function SaveCreationModal({
@@ -64,6 +66,7 @@ export default function SaveCreationModal({
   config,
   existingCreation,
   onSaved,
+  onBeforeSignIn,
 }: SaveCreationModalProps) {
   const t = useTranslations("SaveModal");
   const router = useRouter();
@@ -259,8 +262,15 @@ export default function SaveCreationModal({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <p className="text-sm text-gray-600 dark:text-zinc-400">{t("signInPrompt")}</p>
-              <SignInButton mode="modal">
-                <button className="rounded-lg bg-grass px-5 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors">
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/create"
+                signUpForceRedirectUrl="/create"
+              >
+                <button
+                  className="rounded-lg bg-grass px-5 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors"
+                  onClick={() => onBeforeSignIn?.()}
+                >
                   {t("signInButton")}
                 </button>
               </SignInButton>

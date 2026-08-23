@@ -31,6 +31,12 @@ import { mapPixelsToBlocks } from "../_lib/color-matcher";
 import { loadAndResizeImage } from "../_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "../_lib/litematic-generator";
 import { decodeGrid } from "../_lib/creation-grid";
+import {
+  clearCreateDraft,
+  decodeCreateDraftGrid,
+  loadCreateDraft,
+  saveCreateDraft,
+} from "../_lib/create-draft";
 import SaveCreationModal from "../_components/SaveCreationModal";
 import type { CreationJson, Visibility } from "../_lib/creation";
 
@@ -119,7 +125,7 @@ function StepTracker({ steps }: { steps: Step[] }) {
 
 function CreatePageInner() {
   const t = useTranslations("Page");
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded: isAuthLoaded } = useUser();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -169,6 +175,32 @@ function CreatePageInner() {
   const [isLoadingCreation, setIsLoadingCreation] = useState(false);
   // Pending image when user tries to load a new image while in edit mode
   const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
+  const [restoredGuestDraft, setRestoredGuestDraft] = useState(false);
+
+  const persistGuestDraft = useCallback(() => {
+    if (blockGrid.length === 0) return;
+    void saveCreateDraft({
+      blockGrid,
+      width,
+      height,
+      orientation,
+      schematicName,
+      fillBlockId,
+      foundationEnabled,
+      foundationBlockId,
+      selectedCategories: Array.from(selectedCategories),
+    });
+  }, [
+    blockGrid,
+    width,
+    height,
+    orientation,
+    schematicName,
+    fillBlockId,
+    foundationEnabled,
+    foundationBlockId,
+    selectedCategories,
+  ]);
 
   // Hydrate editor from ?creation=<id>
   useEffect(() => {
@@ -210,6 +242,46 @@ function CreatePageInner() {
       .finally(() => setIsLoadingCreation(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Restore unsaved editor state after Clerk redirects back to /create
+  useEffect(() => {
+    if (searchParams.get("creation")) return;
+    let cancelled = false;
+    void loadCreateDraft().then((draft) => {
+      if (cancelled || !draft) return;
+      const grid = decodeCreateDraftGrid(draft);
+      setBlockGrid(grid);
+      setWidth(draft.width);
+      setHeight(draft.height);
+      setOrientation(draft.orientation);
+      setSchematicName(draft.schematicName);
+      setFillBlockId(draft.fillBlockId);
+      setFoundationEnabled(draft.foundationEnabled);
+      setFoundationBlockId(draft.foundationBlockId);
+      if (draft.selectedCategories.length > 0) {
+        setSelectedCategories(new Set(draft.selectedCategories));
+      }
+      setLastLitematic(
+        generateLitematic(
+          grid,
+          draft.orientation,
+          draft.schematicName,
+          draft.foundationEnabled ? { blockId: draft.foundationBlockId } : undefined,
+        ),
+      );
+      setUndoStack([]);
+      setRestoredGuestDraft(draft.openSaveModal);
+      void clearCreateDraft();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!restoredGuestDraft || !isAuthLoaded || !isSignedIn) return;
+    setShowSaveModal(true);
+  }, [restoredGuestDraft, isAuthLoaded, isSignedIn]);
 
   // Undo stack for block edits
   const [undoStack, setUndoStack] = useState<
@@ -798,44 +870,53 @@ function CreatePageInner() {
                     <p>{t("importInstructions")}</p>
                   </div>
 
-                  {/* Separator */}
-                  <div className="h-8 w-px bg-gray-200 dark:bg-zinc-700" />
+                  {isSignedIn && (
+                    <>
+                      {/* Separator */}
+                      <div className="h-8 w-px bg-gray-200 dark:bg-zinc-700" />
 
-                  {/* Visibility toggle */}
-                  <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
-                    <button
-                      onClick={() => setVisibility("private")}
-                      className={`flex items-center gap-1 px-3 py-2 transition-colors ${
-                        visibility === "private"
-                          ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
-                          : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
-                      }`}
-                    >
-                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <rect x="3" y="7" width="10" height="7" rx="1" />
-                        <path d="M5 7V5a3 3 0 016 0v2" strokeLinecap="round" />
-                      </svg>
-                      {t("visibilityPrivate")}
-                    </button>
-                    <button
-                      onClick={() => setVisibility("public")}
-                      className={`flex items-center gap-1 px-3 py-2 transition-colors ${
-                        visibility === "public"
-                          ? "bg-grass text-white"
-                          : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
-                      }`}
-                    >
-                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <circle cx="8" cy="8" r="6" />
-                        <path d="M8 2a10.5 10.5 0 000 12M8 2a10.5 10.5 0 010 12M2 8h12" strokeLinecap="round" />
-                      </svg>
-                      {t("visibilityPublic")}
-                    </button>
-                  </div>
+                      {/* Visibility toggle — signed-in only */}
+                      <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
+                        <button
+                          onClick={() => setVisibility("private")}
+                          className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                            visibility === "private"
+                              ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                          }`}
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="7" width="10" height="7" rx="1" />
+                            <path d="M5 7V5a3 3 0 016 0v2" strokeLinecap="round" />
+                          </svg>
+                          {t("visibilityPrivate")}
+                        </button>
+                        <button
+                          onClick={() => setVisibility("public")}
+                          className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                            visibility === "public"
+                              ? "bg-grass text-white"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                          }`}
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <circle cx="8" cy="8" r="6" />
+                            <path d="M8 2a10.5 10.5 0 000 12M8 2a10.5 10.5 0 010 12M2 8h12" strokeLinecap="round" />
+                          </svg>
+                          {t("visibilityPublic")}
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   {/* Save button */}
                   <button
-                    onClick={() => setShowSaveModal(true)}
+                    onClick={() => {
+                      if (!isSignedIn && !loadedCreation) {
+                        void persistGuestDraft();
+                      }
+                      setShowSaveModal(true);
+                    }}
                     className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-zinc-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:border-grass hover:text-grass dark:hover:border-grass dark:hover:text-grass transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -908,6 +989,7 @@ function CreatePageInner() {
             selectedCategories,
           }}
           existingCreation={loadedCreation ?? undefined}
+          onBeforeSignIn={persistGuestDraft}
         />
       )}
 
