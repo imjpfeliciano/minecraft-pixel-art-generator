@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Show, SignInButton } from "@clerk/nextjs";
+import UserMenu from "./UserMenu";
 import ThemeToggle from "./ThemeToggle";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { trackNavCreateClicked, trackNavCtaClicked } from "../_lib/landing-analytics";
+import NewBadge from "./NewBadge";
 
 export default function NavBar() {
   const t = useTranslations("Landing");
@@ -33,25 +36,43 @@ export default function NavBar() {
           >
             {t("navCreate")}
           </Link>
-          <span
-            className="cursor-not-allowed rounded-lg px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600"
-            title={t("navGalleryTooltip")}
+          <Link
+            href="/gallery"
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
             {t("navGallery")}
-          </span>
+            <NewBadge />
+          </Link>
+          <Link
+            href="/changelog"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          >
+            {t("navChangelog")}
+          </Link>
         </div>
 
         {/* Right controls */}
         <div className="flex items-center gap-3">
-          <LocaleSwitcher />
-          <ThemeToggle />
-          <Link
-            href="/create"
-            onClick={trackNavCtaClicked}
-            className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-grass-hover"
-          >
-            {t("navCta")}
-          </Link>
+          <Show when="signed-out">
+            <LocaleSwitcher />
+            <ThemeToggle />
+            <SignInButton mode="modal">
+              <button className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100">
+                {t("signIn")}
+                <NewBadge />
+              </button>
+            </SignInButton>
+            <Link
+              href="/create"
+              onClick={trackNavCtaClicked}
+              className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-grass-hover"
+            >
+              {t("navCta")}
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <UserMenu variant="nav" />
+          </Show>
         </div>
       </div>
     </nav>

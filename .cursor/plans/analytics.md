@@ -7,15 +7,16 @@ All events are sent via **Vercel Analytics** using the `track()` function from `
 Event names follow a `<Page> <Subject> <Action>` pattern (e.g. `Landing Hero CTA Clicked`).
 Property names use `snake_case`.
 
-The central module for landing page events lives at:
+### Analytics modules
 
-```
-app/_lib/landing-analytics.ts
-```
+| Module | Path | Surfaces covered |
+|---|---|---|
+| Landing | `app/_lib/landing-analytics.ts` | Landing page (navbar, hero, catalogue, tags, footer) |
+| Social | `app/_lib/social-analytics.ts` | Save modal, dashboard, gallery, creation detail, onboarding |
 
-Each event is a thin typed wrapper around `track()`. **Always add new events there** — never call `track()` directly from a component on the landing page. This keeps the event catalog in one place and makes renaming/refactoring safe.
+**Always add new events to the relevant module** — never call `track()` directly from a component. This keeps the event catalog in one place and makes renaming/refactoring safe.
 
-For the editor (`/create`), events are tracked inline in `app/create/page.tsx` with direct `track()` calls (legacy pattern — can be migrated to a separate `create-analytics.ts` module later).
+For the editor (`/create`), events are tracked inline in `app/create/page.tsx` with direct `track()` calls (legacy pattern — can be migrated to a `create-analytics.ts` module later). All other surfaces use the module pattern.
 
 ---
 
@@ -82,6 +83,15 @@ When adding a new section, extend this union and attach the hook to the new sect
 
 ---
 
+### Landing page — Catalogue section
+
+| Event name | Properties | Source component | Trigger |
+|---|---|---|---|
+| `Landing Catalogue Creation Clicked` | `position: number` | `CatalogueSection.tsx` | Community creation card clicked; `position` is 0-based index in the grid |
+| `Landing Catalogue View All Clicked` | — | `CatalogueSection.tsx` | "View all in gallery →" link clicked |
+
+---
+
 ### Landing page — Footer
 
 | Event name | Properties | Source component | Trigger |
@@ -105,9 +115,71 @@ These are tracked directly with `track()` inside `app/create/page.tsx`.
 
 ---
 
+### Creation lifecycle — `SaveCreationModal.tsx`
+
+Module: `app/_lib/social-analytics.ts`
+
+| Event name | Properties | Trigger |
+|---|---|---|
+| `Creation Save Opened` | `mode: "create" \| "edit"` | Save modal opens; fired once per open |
+| `Creation Saved` | `mode`, `visibility`, `tags_count`, `width`, `height`, `orientation`, `has_description` | Save/update succeeds; fired before `setSavedId` |
+| `Creation Save Failed` | `mode`, `reason: "validation" \| "server" \| "network"` | Validation error, non-OK API response, or uncaught exception |
+| `Creation Publish Blocked` | — | API returns 409 `nickname_required`; key funnel drop-off signal |
+| `Creation Sign In Prompted` | — | Modal opens while user is not signed in |
+
+---
+
+### Dashboard — `DashboardGrid.tsx`
+
+Module: `app/_lib/social-analytics.ts`
+
+| Event name | Properties | Trigger |
+|---|---|---|
+| `Creation Visibility Toggled` | `to: "public" \| "private"` | Publish/unpublish succeeds (`res.ok`); optimistic reverts are not counted |
+| `Creation Deleted` | — | Delete API call succeeds (`res.ok`) |
+
+---
+
+### Gallery — `GalleryContent.tsx`
+
+Module: `app/_lib/social-analytics.ts`
+
+| Event name | Properties | Trigger |
+|---|---|---|
+| `Gallery Tag Filtered` | `tag: string` | Tag chip clicked; value is `"all"` for the All chip, otherwise the tag slug |
+| `Gallery Load More Clicked` | `loaded_count: number` | "Load more" button clicked; value is current count before the new page is appended |
+| `Gallery Creation Opened` | `position: number` | Creation card link clicked; 0-based index in the visible grid |
+
+---
+
+### Creation detail — `DownloadCreationButton.tsx`, `CreationPreviewPanel.tsx`
+
+Module: `app/_lib/social-analytics.ts`
+
+| Event name | Properties | Source component | Trigger |
+|---|---|---|---|
+| `Creation Downloaded` | `width`, `height`, `orientation` | `DownloadCreationButton.tsx` | `.litematic` file generated and downloaded successfully |
+| `Creation Download Failed` | — | `DownloadCreationButton.tsx` | Any error during grid fetch, decode, or generation |
+| `Creation Preview Tab Changed` | `tab: "image" \| "2d" \| "3d"` | `CreationPreviewPanel.tsx` | Tab button clicked; fires even if the grid is still loading |
+
+These events are distinct from the editor's `Litematic Downloaded` / `3D Preview Opened` events, which fire inside `/create`. The distinct names allow Vercel Analytics to separate editor downloads from gallery-page downloads.
+
+---
+
+### Onboarding — `app/(authenticated)/onboarding/page.tsx`
+
+Module: `app/_lib/social-analytics.ts`
+
+| Event name | Properties | Trigger |
+|---|---|---|
+| `Onboarding Nickname Claimed` | `has_display_name: boolean`, `has_bio: boolean` | Nickname claimed successfully; fires before `router.push("/dashboard")` |
+| `Onboarding Nickname Claim Failed` | — | API returns non-OK, or an uncaught exception occurs |
+
+---
+
 ## How to add a new event
 
-1. **Define it in `app/_lib/landing-analytics.ts`** (or create a `<page>-analytics.ts` for a new page):
+1. **Define it in the appropriate module** (`app/_lib/landing-analytics.ts` for landing, `app/_lib/social-analytics.ts` for social/creation surfaces, or create a `<page>-analytics.ts` for a new page):
 
 ```ts
 export function trackMyNewEvent(param: string) {
@@ -131,10 +203,10 @@ import { trackMyNewEvent } from "../../_lib/landing-analytics";
 
 | Segment | Rule | Example |
 |---|---|---|
-| Page prefix | PascalCase page name | `Landing`, `Create`, `Explore` |
-| Subject | PascalCase component or feature | `Hero`, `Nav`, `Tag Request`, `Footer` |
-| Action | Past-tense verb | `Clicked`, `Submitted`, `Dragged`, `Visible` |
-| Property keys | `snake_case` | `final_percent`, `tag_name` |
+| Page prefix | PascalCase page or feature name | `Landing`, `Creation`, `Gallery`, `Onboarding` |
+| Subject | PascalCase component or feature | `Hero`, `Nav`, `Tag Request`, `Footer`, `Save`, `Preview` |
+| Action | Past-tense verb | `Clicked`, `Submitted`, `Dragged`, `Visible`, `Saved`, `Toggled` |
+| Property keys | `snake_case` | `final_percent`, `tag_name`, `has_description` |
 | Property values | raw primitives | `number`, `string`, `boolean` |
 
 Avoid generic names like `Button Clicked` — include enough context that the event is self-describing in the Vercel Analytics dashboard without needing to cross-reference source code.

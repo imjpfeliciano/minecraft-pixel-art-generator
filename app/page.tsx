@@ -4,6 +4,8 @@ import HowItWorksSection from "./_components/landing/HowItWorksSection";
 import CatalogueSection from "./_components/landing/CatalogueSection";
 import TagsSection from "./_components/landing/TagsSection";
 import Footer from "./_components/landing/Footer";
+import { getDb } from "./_lib/server/firebase-admin";
+import { toCreationJson, type Creation } from "./_lib/creation";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
 
@@ -19,7 +21,28 @@ const jsonLd = {
   url: SITE_URL,
 };
 
-export default function LandingPage() {
+async function fetchRecentPublicCreations() {
+  try {
+    const db = getDb();
+    const snap = await db
+      .collection("creations")
+      .where("visibility", "==", "public")
+      .orderBy("publishedAt", "desc")
+      .limit(6)
+      .get();
+    return snap.docs.map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (!msg.includes("index") && !msg.includes("FAILED_PRECONDITION")) {
+      console.error("[landing] fetchRecentPublicCreations error:", err);
+    }
+    return [];
+  }
+}
+
+export default async function LandingPage() {
+  const recentCreations = await fetchRecentPublicCreations();
+
   return (
     <>
       <script
@@ -31,7 +54,7 @@ export default function LandingPage() {
         <main>
           <HeroSection />
           <HowItWorksSection />
-          <CatalogueSection />
+          <CatalogueSection creations={recentCreations} />
           <TagsSection />
         </main>
         <Footer />

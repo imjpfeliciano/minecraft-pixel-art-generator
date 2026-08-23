@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useUser } from "@clerk/nextjs";
+import { useSearchParams, useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import ImageUpload from "../_components/ImageUpload";
 import ControlPanel from "../_components/ControlPanel";
@@ -10,6 +13,14 @@ import PixelArtPreview from "../_components/PixelArtPreview";
 import BlockLegend from "../_components/BlockLegend";
 import ThemeToggle from "../_components/ThemeToggle";
 import LocaleSwitcher from "../_components/LocaleSwitcher";
+import UserMenu from "../_components/UserMenu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../_components/ui/dialog";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -19,6 +30,15 @@ import {
 import { mapPixelsToBlocks } from "../_lib/color-matcher";
 import { loadAndResizeImage } from "../_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "../_lib/litematic-generator";
+import { decodeGrid } from "../_lib/creation-grid";
+import {
+  clearCreateDraft,
+  decodeCreateDraftGrid,
+  loadCreateDraft,
+  saveCreateDraft,
+} from "../_lib/create-draft";
+import SaveCreationModal from "../_components/SaveCreationModal";
+import type { CreationJson, Visibility } from "../_lib/creation";
 
 // Loading placeholder for the 3D viewer — needs translations so it's a component
 function Loading3DViewer() {
@@ -103,8 +123,11 @@ function StepTracker({ steps }: { steps: Step[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CreatePage() {
+function CreatePageInner() {
   const t = useTranslations("Page");
+  const { isSignedIn, isLoaded: isAuthLoaded } = useUser();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -144,6 +167,122 @@ export default function CreatePage() {
   // Preview mode: 2D canvas or 3D schematic viewer
   const [previewMode, setPreviewMode] = useState<"2d" | "3d">("2d");
 
+  // Save modal
+  const [visibility, setVisibility] = useState<Visibility>("private");
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  // When set, the editor was opened from the dashboard ("re-open in editor")
+  const [loadedCreation, setLoadedCreation] = useState<CreationJson | null>(null);
+  const [isLoadingCreation, setIsLoadingCreation] = useState(false);
+  // Pending image when user tries to load a new image while in edit mode
+  const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
+  const [restoredGuestDraft, setRestoredGuestDraft] = useState(false);
+
+  const persistGuestDraft = useCallback(() => {
+    if (blockGrid.length === 0) return;
+    void saveCreateDraft({
+      blockGrid,
+      width,
+      height,
+      orientation,
+      schematicName,
+      fillBlockId,
+      foundationEnabled,
+      foundationBlockId,
+      selectedCategories: Array.from(selectedCategories),
+    });
+  }, [
+    blockGrid,
+    width,
+    height,
+    orientation,
+    schematicName,
+    fillBlockId,
+    foundationEnabled,
+    foundationBlockId,
+    selectedCategories,
+  ]);
+
+  // Hydrate editor from ?creation=<id>
+  useEffect(() => {
+    const creationId = searchParams.get("creation");
+    if (!creationId) return;
+    setIsLoadingCreation(true);
+
+    Promise.all([
+      fetch(`/api/creations/${creationId}`).then((r) => r.json() as Promise<CreationJson>),
+      fetch(`/api/creations/${creationId}/grid`).then((r) => r.arrayBuffer()),
+    ])
+      .then(([creation, gridBuffer]) => {
+        const grid = decodeGrid(new Uint8Array(gridBuffer));
+        setLoadedCreation(creation);
+        setBlockGrid(grid);
+        setWidth(creation.width);
+        setHeight(creation.height);
+        setOrientation(creation.orientation as Orientation);
+        setSchematicName(creation.schematicName);
+        setFillBlockId(creation.fillBlockId ?? "");
+        setFoundationEnabled(creation.foundation.enabled);
+        setFoundationBlockId(creation.foundation.blockId);
+        if (creation.blockCategories.length > 0) {
+          setSelectedCategories(new Set(creation.blockCategories));
+        }
+        setVisibility(creation.visibility);
+        // Regenerate the litematic from the loaded grid
+        setLastLitematic(
+          generateLitematic(
+            grid,
+            creation.orientation as Orientation,
+            creation.schematicName,
+            creation.foundation.enabled ? { blockId: creation.foundation.blockId } : undefined,
+          ),
+        );
+        setUndoStack([]);
+      })
+      .catch(() => setError(t("loadCreationError")))
+      .finally(() => setIsLoadingCreation(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Restore unsaved editor state after Clerk redirects back to /create
+  useEffect(() => {
+    if (searchParams.get("creation")) return;
+    let cancelled = false;
+    void loadCreateDraft().then((draft) => {
+      if (cancelled || !draft) return;
+      const grid = decodeCreateDraftGrid(draft);
+      setBlockGrid(grid);
+      setWidth(draft.width);
+      setHeight(draft.height);
+      setOrientation(draft.orientation);
+      setSchematicName(draft.schematicName);
+      setFillBlockId(draft.fillBlockId);
+      setFoundationEnabled(draft.foundationEnabled);
+      setFoundationBlockId(draft.foundationBlockId);
+      if (draft.selectedCategories.length > 0) {
+        setSelectedCategories(new Set(draft.selectedCategories));
+      }
+      setLastLitematic(
+        generateLitematic(
+          grid,
+          draft.orientation,
+          draft.schematicName,
+          draft.foundationEnabled ? { blockId: draft.foundationBlockId } : undefined,
+        ),
+      );
+      setUndoStack([]);
+      setRestoredGuestDraft(draft.openSaveModal);
+      void clearCreateDraft();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!restoredGuestDraft || !isAuthLoaded || !isSignedIn) return;
+    setShowSaveModal(true);
+  }, [restoredGuestDraft, isAuthLoaded, isSignedIn]);
+
   // Undo stack for block edits
   const [undoStack, setUndoStack] = useState<
     Array<{ grid: MinecraftBlock[][]; litematic: Uint8Array | null }>
@@ -157,8 +296,7 @@ export default function CreatePage() {
     };
   }, []);
 
-  const handleImageSelected = useCallback((file: File, url: string) => {
-    // Revoke the previous blob URL before replacing it
+  const applyNewImage = useCallback((file: File, url: string) => {
     if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
     imagePreviewUrlRef.current = url;
     setImageFile(file);
@@ -168,6 +306,31 @@ export default function CreatePage() {
     setUndoStack([]);
     setError(null);
   }, []);
+
+  const handleImageSelected = useCallback(
+    (file: File, url: string) => {
+      if (loadedCreation) {
+        // Intercept: ask for confirmation before discarding edit-mode state
+        setPendingImage({ file, url });
+        return;
+      }
+      applyNewImage(file, url);
+    },
+    [loadedCreation, applyNewImage]
+  );
+
+  const handleConfirmNewCreation = useCallback(() => {
+    if (!pendingImage) return;
+    setLoadedCreation(null);
+    router.replace("/create", { scroll: false });
+    applyNewImage(pendingImage.file, pendingImage.url);
+    setPendingImage(null);
+  }, [pendingImage, applyNewImage, router]);
+
+  const handleCancelNewCreation = useCallback(() => {
+    if (pendingImage) URL.revokeObjectURL(pendingImage.url);
+    setPendingImage(null);
+  }, [pendingImage]);
 
   const pushUndo = useCallback(
     (currentGrid: MinecraftBlock[][], currentLitematic: Uint8Array | null) => {
@@ -382,10 +545,36 @@ export default function CreatePage() {
         <div className="ml-auto flex items-center gap-2">
           <LocaleSwitcher />
           <ThemeToggle />
+          {isSignedIn && (
+            <>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                My Creations
+              </Link>
+              <UserMenu variant="nav" />
+            </>
+          )}
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Loading banner — shown while hydrating from ?creation=id */}
+        {isLoadingCreation && (
+          <div className="absolute inset-x-0 top-[57px] z-10 flex items-center gap-2 bg-grass px-4 py-2 text-xs font-medium text-white">
+            <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+            </svg>
+            {t("loadingCreation")}
+          </div>
+        )}
         {/* ── Sidebar ───────────────────────────────────────────────────────── */}
         <aside className="w-80 flex-shrink-0 border-r border-gray-100 dark:border-zinc-800 overflow-y-auto p-5 flex flex-col gap-6">
           {/* Step tracker */}
@@ -663,9 +852,9 @@ export default function CreatePage() {
                 )}
               </div>
 
-              {/* ── Download bar ─────────────────────────────────────────────── */}
+              {/* ── Action bar ───────────────────────────────────────────────── */}
               {blockGrid.length > 0 && (
-                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3">
+                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3 flex-wrap">
                   <button
                     onClick={handleDownload}
                     className="flex items-center gap-2 rounded-xl bg-grass px-5 py-3 text-sm font-semibold text-white hover:bg-grass-hover active:scale-95 transition-all"
@@ -680,6 +869,62 @@ export default function CreatePage() {
                     <p>{t("importVia")} <span className="text-gray-700 dark:text-zinc-300 font-medium">{t("importLitematicaMod")}</span></p>
                     <p>{t("importInstructions")}</p>
                   </div>
+
+                  {isSignedIn && (
+                    <>
+                      {/* Separator */}
+                      <div className="h-8 w-px bg-gray-200 dark:bg-zinc-700" />
+
+                      {/* Visibility toggle — signed-in only */}
+                      <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
+                        <button
+                          onClick={() => setVisibility("private")}
+                          className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                            visibility === "private"
+                              ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                          }`}
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="7" width="10" height="7" rx="1" />
+                            <path d="M5 7V5a3 3 0 016 0v2" strokeLinecap="round" />
+                          </svg>
+                          {t("visibilityPrivate")}
+                        </button>
+                        <button
+                          onClick={() => setVisibility("public")}
+                          className={`flex items-center gap-1 px-3 py-2 transition-colors ${
+                            visibility === "public"
+                              ? "bg-grass text-white"
+                              : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                          }`}
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <circle cx="8" cy="8" r="6" />
+                            <path d="M8 2a10.5 10.5 0 000 12M8 2a10.5 10.5 0 010 12M2 8h12" strokeLinecap="round" />
+                          </svg>
+                          {t("visibilityPublic")}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Save button */}
+                  <button
+                    onClick={() => {
+                      if (!isSignedIn && !loadedCreation) {
+                        void persistGuestDraft();
+                      }
+                      setShowSaveModal(true);
+                    }}
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-zinc-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:border-grass hover:text-grass dark:hover:border-grass dark:hover:text-grass transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    {t("saveButton")}
+                  </button>
                 </div>
               )}
             </>
@@ -725,6 +970,67 @@ export default function CreatePage() {
           )}
         </main>
       </div>
+
+      {/* ── Save creation modal ───────────────────────────────────────── */}
+      {blockGrid.length > 0 && (
+        <SaveCreationModal
+          open={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          blockGrid={blockGrid}
+          initialVisibility={visibility}
+          config={{
+            orientation,
+            width,
+            height,
+            schematicName,
+            fillBlockId,
+            foundationEnabled,
+            foundationBlockId,
+            selectedCategories,
+          }}
+          existingCreation={loadedCreation ?? undefined}
+          onBeforeSignIn={persistGuestDraft}
+        />
+      )}
+
+      {/* ── New-creation confirmation dialog ──────────────────────────── */}
+      <Dialog
+        open={pendingImage !== null}
+        onOpenChange={(open) => { if (!open) handleCancelNewCreation(); }}
+      >
+        <DialogContent className="max-w-sm bg-white dark:bg-zinc-900">
+          <DialogHeader>
+            <DialogTitle>{t("newCreationConfirmTitle")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-zinc-400">
+            {loadedCreation
+              ? t("newCreationConfirmBodyEdit", { title: loadedCreation.title })
+              : t("newCreationConfirmBody")}
+          </p>
+          <DialogFooter className="gap-2">
+            <button
+              onClick={handleCancelNewCreation}
+              className="px-4 py-2 text-sm rounded-md border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t("newCreationConfirmCancel")}
+            </button>
+            <button
+              onClick={handleConfirmNewCreation}
+              className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              {t("newCreationConfirmContinue")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense>
+      <CreatePageInner />
+    </Suspense>
   );
 }

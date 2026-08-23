@@ -36,11 +36,12 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   const [preference, setPreferenceState] = useState<ThemePreference>("light");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
-  // Read from localStorage on mount
+  // Read from localStorage on mount and sync to cookie for SSR
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
     const pref: ThemePreference =
       stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
+    document.cookie = `theme-preference=${pref};path=/;max-age=31536000;SameSite=Lax`;
     setPreferenceState(pref);
     const resolved = resolve(pref);
     setResolvedTheme(resolved);
@@ -62,6 +63,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
 
   function setPreference(pref: ThemePreference) {
     localStorage.setItem(STORAGE_KEY, pref);
+    document.cookie = `theme-preference=${pref};path=/;max-age=31536000;SameSite=Lax`;
     setPreferenceState(pref);
     const resolved = resolve(pref);
     setResolvedTheme(resolved);

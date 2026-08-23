@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// All writes go through the Admin SDK (bypasses rules).
+// Preview images are publicly readable by URL; grid files are also readable
+// by URL (guessability of creationId provides sufficient privacy for grids).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /creations/{userId}/{creationId}/preview.png {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /creations/{userId}/{creationId}/grid.json.gz {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

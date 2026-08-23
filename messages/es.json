@@ -1,4 +1,7 @@
 {
+  "Common": {
+    "new": "Nuevo"
+  },
   "Page": {
     "title": "mc-pixel app",
     "tagline": "Imagen → Esquema de Litematica",
@@ -49,7 +52,17 @@
     "importInstructions": "en Minecraft → Cargar Esquemas",
     "uploadToBegin": "Sube una imagen para comenzar",
     "originalImageAlt": "Imagen original",
-    "loading3d": "Cargando visor 3D…"
+    "loading3d": "Cargando visor 3D…",
+    "saveButton": "Guardar",
+    "visibilityPrivate": "Privado",
+    "visibilityPublic": "Público",
+    "loadingCreation": "Cargando creación…",
+    "loadCreationError": "Error al cargar la creación. Por favor, inténtalo de nuevo.",
+    "newCreationConfirmTitle": "¿Empezar una nueva creación?",
+    "newCreationConfirmBody": "Los cambios no guardados se perderán.",
+    "newCreationConfirmBodyEdit": "Estás editando \"{title}\". Los cambios no guardados se perderán.",
+    "newCreationConfirmContinue": "Continuar",
+    "newCreationConfirmCancel": "Volver"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensiones (bloques)",
@@ -125,16 +138,128 @@
     "system": "Sistema",
     "switchTo": "Cambiar a modo {label}"
   },
+  "UserMenu": {
+    "myProfile": "Mi Perfil",
+    "myCreations": "Mis Creaciones",
+    "setNickname": "Establecer apodo",
+    "signOut": "Cerrar sesión"
+  },
+  "Sidebar": {
+    "create": "Crear",
+    "myCreations": "Mis Creaciones",
+    "explore": "Explorar"
+  },
+  "Onboarding": {
+    "title": "Elige tu apodo",
+    "description": "Tu apodo es tu identificador público — aparece en la URL de tu perfil y en tus creaciones.",
+    "nicknameLabel": "Apodo",
+    "nicknamePlaceholder": "p.ej. creeper-slayer",
+    "nicknameHint": "3–30 caracteres. Solo letras minúsculas, dígitos, guiones bajos o guiones.",
+    "checking": "Verificando…",
+    "available": "Disponible ✓",
+    "taken": "Ya está en uso",
+    "displayNameLabel": "Nombre para mostrar",
+    "bioLabel": "Biografía",
+    "bioPlaceholder": "Cuéntale a la comunidad sobre ti (opcional)",
+    "save": "Guardar y continuar",
+    "saving": "Guardando…"
+  },
+  "Dashboard": {
+    "title": "Mis Creaciones",
+    "emptyHeading": "Sin creaciones todavía",
+    "emptyBody": "Ve al editor y genera tu primer esquema de arte pixel.",
+    "emptyCta": "Empezar a crear",
+    "creationCount": "{count, plural, one {# creación} other {# creaciones}}",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar esta creación? Esta acción no se puede deshacer."
+  },
+  "SaveModal": {
+    "title": "Guardar Creación",
+    "editTitle": "Editar Creación",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ponle un nombre a tu arte pixel…",
+    "titleRequired": "El título es obligatorio.",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Describe tu creación (opcional)",
+    "tagsLabel": "Etiquetas",
+    "visibilityLabel": "Visibilidad",
+    "visibilityPrivate": "Privado",
+    "visibilityPublic": "Público",
+    "visibilityPrivateHint": "Solo tú puedes verlo.",
+    "visibilityPublicHint": "Visible para todos en la galería.",
+    "nicknameRequiredHint": "Necesitas un apodo para publicar.",
+    "nicknameSetLink": "Establecer apodo →",
+    "save": "Guardar Creación",
+    "update": "Actualizar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "signInPrompt": "Inicia sesión para guardar y compartir tus creaciones de arte pixel.",
+    "signInButton": "Iniciar sesión",
+    "successTitle": "¡Guardado!",
+    "successBody": "Tu creación ha sido guardada en tu panel.",
+    "updateSuccessTitle": "¡Actualizado!",
+    "updateSuccessBody": "Tus cambios han sido guardados.",
+    "viewDashboard": "Ver en el Panel →",
+    "errorGeneric": "Algo salió mal. Por favor, inténtalo de nuevo."
+  },
+  "CreationCard": {
+    "visibilityPublic": "Público",
+    "visibilityPrivate": "Privado",
+    "dimensions": "{w} × {h} bloques",
+    "openInEditor": "Abrir en el editor",
+    "editButton": "Editar",
+    "publishButton": "Publicar",
+    "unpublishButton": "Despublicar",
+    "deleteButton": "Eliminar"
+  },
+  "Gallery": {
+    "title": "Galería Comunitaria",
+    "description": "Explora schematics de pixel art de Minecraft creados por la comunidad.",
+    "filterAll": "Todos",
+    "loadMore": "Cargar más",
+    "loading": "Cargando…",
+    "empty": "Aún no hay creaciones públicas. ¡Sé el primero en publicar!",
+    "emptyFiltered": "No se encontraron creaciones para esta etiqueta.",
+    "creationCount": "{count, plural, one {# esquema} other {# esquemas}}",
+    "eyebrow": "Comunidad",
+    "subheading": "Explora schematics de pixel art — descárgalos como archivos .litematic.",
+    "startCreating": "Empezar a crear"
+  },
+  "CreationDetail": {
+    "notFound": "Creación no encontrada",
+    "by": "Por",
+    "dimensions": "{w} × {h} bloques",
+    "downloadButton": "Descargar .litematic",
+    "downloading": "Generando…",
+    "downloadError": "No se pudo generar el schematic. Por favor, inténtalo de nuevo.",
+    "privateNotice": "Esta creación es privada.",
+    "publishedAt": "Publicado",
+    "viewProfile": "Ver perfil",
+    "sizeLabel": "Tamaño",
+    "sizeValue": "{w} × {h} bloques",
+    "orientationLabel": "Orientación",
+    "downloadsLabel": "Descargas",
+    "createYourOwn": "Crea el tuyo →"
+  },
+  "Profile": {
+    "notFound": "Perfil no encontrado",
+    "publicCreations": "{count, plural, one {# creación pública} other {# creaciones públicas}}",
+    "joined": "Unido",
+    "empty": "Aún no hay creaciones públicas.",
+    "viewGallery": "Explorar la galería"
+  },
   "Landing": {
     "navCreate": "Crear",
     "navGallery": "Galería",
+    "navChangelog": "Novedades",
+    "signIn": "Iniciar sesión",
     "navGalleryTooltip": "Próximamente",
     "navCta": "Empezar a Crear →",
     "heroEyebrow": "Gratis",
     "heroHeadline": "Convierte cualquier imagen en",
     "heroHeadlineHighlight": "arte pixel",
     "heroHeadlineSuffix": "perfecto por bloques",
-    "heroSubheadline": "Genera esquemas con precisión de bloques desde cualquier foto. Elige tu paleta, ajusta las dimensiones y exporta un {code} listo para construir.",
+    "heroSubheadline": "Genera esquemas con precisión de bloques desde cualquier foto. Elige tu paleta, ajusta las dimensiones y exporta un <code>.litematic</code> listo para construir.",
     "heroCtaLabel": "Empezar a Crear",
     "heroCompareHint": "Arrastra el divisor para comparar original vs. arte en bloques",
     "howTitle": "Cómo funciona",
@@ -149,6 +274,8 @@
     "catalogueSubheading": "Explora esquemas de arte pixel creados por la comunidad — filtra por etiqueta, ordena por popularidad.",
     "catalogueSearchPlaceholder": "Buscar por título o creador…",
     "catalogueFilterTooltip": "Próximamente",
+    "catalogueEmpty": "Aún no hay creaciones publicadas — ¡sé el primero!",
+    "catalogueViewAll": "Ver todo en la galería →",
     "catalogueSortMostLiked": "Más gustados",
     "catalogueSortNewest": "Más recientes",
     "catalogueSortMostForked": "Más bifurcados",
@@ -174,6 +301,52 @@
     "footerCopyright": "© {year} Generador de Arte Pixel de Minecraft",
     "footerGithub": "GitHub",
     "footerLicense": "Licencia MIT",
-    "footerDeployedOn": "Desplegado en Vercel"
+    "footerDeployedOn": "Desplegado en Vercel",
+    "footerChangelog": "Novedades"
+  },
+  "Changelog": {
+    "eyebrow": "Novedades",
+    "title": "Registro de cambios",
+    "subtitle": "Actualizaciones por función, las más recientes primero. v2 es la capa social de este lanzamiento; v1 es el generador original.",
+    "v2": {
+      "label": "v2",
+      "date": "Agosto 2026",
+      "accounts": {
+        "title": "Cuentas de usuario y perfiles sociales",
+        "summary": "Inicia sesión para elegir un apodo, escribir una bio corta y tener un perfil público en /u/tu-nombre. Tu identificador aparece en las creaciones que publicas."
+      },
+      "save": {
+        "title": "Guardar y gestionar creaciones",
+        "summary": "Guarda el arte pixel en tu panel en lugar de solo descargarlo. Edita, elimina y elige si cada pieza es privada o pública."
+      },
+      "gallery": {
+        "title": "Galería de la comunidad",
+        "summary": "Explora esquemas publicados, abre una creación en vista 2D/3D, filtra por etiqueta y descarga archivos .litematic de otros constructores."
+      },
+      "profiles": {
+        "title": "Páginas públicas de creaciones",
+        "summary": "Cada pieza publicada tiene una página para compartir con vista previa, tamaño, autor y descarga — para enviar un enlace, no solo un archivo."
+      }
+    },
+    "v1": {
+      "label": "v1",
+      "date": "Lanzamiento",
+      "converter": {
+        "title": "De imagen a arte pixel de Minecraft",
+        "summary": "Sube una foto y mapéala a bloques reales de Minecraft con paleta, tamaño y orientación a tu elección."
+      },
+      "export": {
+        "title": "Exportación a Litematica",
+        "summary": "Descarga un esquema .litematic listo para cargar en el mod Litematica y construir en el juego."
+      },
+      "preview": {
+        "title": "Vista previa 2D y 3D",
+        "summary": "Revisa el resultado como cuadrícula de píxeles o modelo 3D de bloques antes de exportar, con deshacer y lista de materiales."
+      },
+      "configure": {
+        "title": "Paleta, fondo y cimiento",
+        "summary": "Ajusta las categorías de bloques, rellena píxeles vacíos y añade una capa de cimiento para que el esquema coincida con cómo quieres construir."
+      }
+    }
   }
 }

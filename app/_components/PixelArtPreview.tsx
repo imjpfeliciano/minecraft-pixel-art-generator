@@ -28,6 +28,7 @@ interface Props {
   ) => void;
   onBlockPicked?: (block: MinecraftBlock) => void;
   onBlockPainted?: (row: number, col: number, block: MinecraftBlock) => void;
+  toolbarMode?: "full" | "zoom-only";
 }
 
 const MIN_CELL = 2;
@@ -82,6 +83,7 @@ export default function PixelArtPreview({
   onBlocksReplaced,
   onBlockPicked,
   onBlockPainted,
+  toolbarMode = "full",
 }: Props) {
   const t = useTranslations("PixelArtPreview");
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -472,6 +474,7 @@ export default function PixelArtPreview({
 
         <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700 flex-shrink-0" />
 
+        {toolbarMode === "full" && (
         <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium">
           {(["pan", "select", "pick"] as const).map((mode) => (
             <button
@@ -501,8 +504,9 @@ export default function PixelArtPreview({
             </button>
           ))}
         </div>
+        )}
 
-        {activeBrush && (
+        {toolbarMode === "full" && activeBrush && (
           <div className="flex items-center gap-1.5 rounded-lg border border-green-600/40 bg-green-600/10 px-2 py-1">
             <BlockIcon block={activeBrush} size={16} />
             <span className="text-xs text-green-400 max-w-24 truncate">{activeBrush.name}</span>
@@ -518,6 +522,8 @@ export default function PixelArtPreview({
           </div>
         )}
 
+        {toolbarMode === "full" && (
+        <>
         <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700 flex-shrink-0" />
 
         <button
@@ -558,6 +564,8 @@ export default function PixelArtPreview({
           <CompareIcon active={compareEnabled} />
           {t("compareLabel")}
         </button>
+        </>
+        )}
       </div>
 
       <div

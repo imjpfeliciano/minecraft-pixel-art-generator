@@ -37,6 +37,15 @@ export function trackTagRequestSubmitted(tagName: string) {
   track("Landing Tag Request Submitted", { tag_name: tagName });
 }
 
+// ─── Catalogue ─────────────────────────────────────────────────────────────────
+export function trackLandingCatalogueCreationClicked(position: number) {
+  track("Landing Catalogue Creation Clicked", { position });
+}
+
+export function trackLandingCatalogueViewAllClicked() {
+  track("Landing Catalogue View All Clicked");
+}
+
 // ─── Footer ────────────────────────────────────────────────────────────────────
 export function trackFooterGithubClicked() {
   track("Landing Footer GitHub Clicked");
