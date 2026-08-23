@@ -1,4 +1,7 @@
 {
+  "Common": {
+    "new": "New"
+  },
   "Page": {
     "title": "mc-pixel app",
     "tagline": "Image → Litematica schematic",
@@ -248,6 +251,7 @@
   "Landing": {
     "navCreate": "Create",
     "navGallery": "Gallery",
+    "navChangelog": "Changelog",
     "signIn": "Sign in",
     "navGalleryTooltip": "Coming soon",
     "navCta": "Start Creating →",
@@ -270,6 +274,7 @@
     "catalogueSubheading": "Browse pixel art schematics created by the community — filter by tag, sort by popularity.",
     "catalogueSearchPlaceholder": "Search by title or creator…",
     "catalogueFilterTooltip": "Coming soon",
+    "catalogueEmpty": "No creations published yet — be the first!",
     "catalogueViewAll": "View all in gallery →",
     "catalogueSortMostLiked": "Most liked",
     "catalogueSortNewest": "Newest",
@@ -296,6 +301,52 @@
     "footerCopyright": "© {year} Minecraft Pixel Art Generator",
     "footerGithub": "GitHub",
     "footerLicense": "MIT License",
-    "footerDeployedOn": "Deployed on Vercel"
+    "footerDeployedOn": "Deployed on Vercel",
+    "footerChangelog": "Changelog"
+  },
+  "Changelog": {
+    "eyebrow": "What's new",
+    "title": "Changelog",
+    "subtitle": "Feature updates, newest first. v2 is the social platform on this release; v1 is the original generator.",
+    "v2": {
+      "label": "v2",
+      "date": "August 2026",
+      "accounts": {
+        "title": "User accounts and social profiles",
+        "summary": "Sign in to claim a nickname, write a short bio, and get a public profile at /u/your-name. Your handle appears on creations you publish."
+      },
+      "save": {
+        "title": "Save and manage creations",
+        "summary": "Keep pixel art in your dashboard instead of only downloading it. Edit, delete, and choose private or public visibility for each piece."
+      },
+      "gallery": {
+        "title": "Community gallery",
+        "summary": "Browse published schematics, open a creation for a 2D/3D preview, filter by tag, and download .litematic files from other builders."
+      },
+      "profiles": {
+        "title": "Public creation pages",
+        "summary": "Every published piece has a shareable page with preview, size, author, and download — so you can send a link instead of only a file."
+      }
+    },
+    "v1": {
+      "label": "v1",
+      "date": "Launch",
+      "converter": {
+        "title": "Image to Minecraft pixel art",
+        "summary": "Upload a photo and map it onto real Minecraft blocks with a chosen palette, size, and orientation."
+      },
+      "export": {
+        "title": "Litematica export",
+        "summary": "Download a .litematic schematic ready to load in the Litematica mod and build in-game."
+      },
+      "preview": {
+        "title": "2D and 3D preview",
+        "summary": "Inspect the result as a pixel grid or a 3D block model before you export, including undo and a materials list."
+      },
+      "configure": {
+        "title": "Palette, background, and foundation",
+        "summary": "Tune block categories, fill empty pixels, and add a foundation layer so the schematic matches how you want to build."
+      }
+    }
   }
 }

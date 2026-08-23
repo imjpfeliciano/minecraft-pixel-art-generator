@@ -23,6 +23,12 @@ export default function Footer() {
 
         <div className="flex items-center gap-6">
           <Link
+            href="/changelog"
+            className="text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-600 dark:hover:text-gray-300"
+          >
+            {t("footerChangelog")}
+          </Link>
+          <Link
             href="https://github.com/imjpfeliciano/minecraft-pixel-art-generator"
             target="_blank"
             rel="noopener noreferrer"
