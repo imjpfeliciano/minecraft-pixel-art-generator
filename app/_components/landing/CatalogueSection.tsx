@@ -100,7 +100,7 @@ export default function CatalogueSection({ creations }: CatalogueSectionProps) {
                 href="/gallery"
                 className="rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                View all in gallery →
+                {t("catalogueViewAll")}
               </Link>
             </div>
           </>

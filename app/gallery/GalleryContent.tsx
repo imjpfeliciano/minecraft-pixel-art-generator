@@ -61,6 +61,15 @@ export default function GalleryContent({
 
   return (
     <>
+      {/* Header */}
+      <div className="mb-10">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
+          {t("eyebrow")}
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="mt-2 text-gray-500 dark:text-zinc-400">{t("subheading")}</p>
+      </div>
+
       {/* Tag filter chips */}
       <div className="mb-8 flex flex-wrap items-center gap-2">
         <button
@@ -98,7 +107,7 @@ export default function GalleryContent({
             href="/create"
             className="rounded-lg bg-grass px-5 py-2.5 text-sm font-semibold text-white hover:bg-grass-hover transition-colors"
           >
-            Start creating
+            {t("startCreating")}
           </Link>
         </div>
       ) : (

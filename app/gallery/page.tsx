@@ -74,17 +74,6 @@ export default async function GalleryPage({ searchParams }: GalleryPageProps) {
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <NavBar />
       <main className="mx-auto max-w-7xl min-h-[calc(100vh-64px)] px-8 py-12">
-        {/* Header */}
-        <div className="mb-10">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-            Community
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">Community Gallery</h1>
-          <p className="mt-2 text-gray-500 dark:text-zinc-400">
-            Browse pixel art schematics — download as .litematic files.
-          </p>
-        </div>
-
         <Suspense>
           <GalleryContent
             key={activeTag ?? "__all__"}

@@ -217,7 +217,10 @@
     "loading": "Loading…",
     "empty": "No public creations yet. Be the first to publish!",
     "emptyFiltered": "No creations found for this tag.",
-    "creationCount": "{count, plural, one {# schematic} other {# schematics}}"
+    "creationCount": "{count, plural, one {# schematic} other {# schematics}}",
+    "eyebrow": "Community",
+    "subheading": "Browse pixel art schematics — download as .litematic files.",
+    "startCreating": "Start creating"
   },
   "CreationDetail": {
     "notFound": "Creation not found",
@@ -245,6 +248,7 @@
   "Landing": {
     "navCreate": "Create",
     "navGallery": "Gallery",
+    "signIn": "Sign in",
     "navGalleryTooltip": "Coming soon",
     "navCta": "Start Creating →",
     "heroEyebrow": "Free",
@@ -266,6 +270,7 @@
     "catalogueSubheading": "Browse pixel art schematics created by the community — filter by tag, sort by popularity.",
     "catalogueSearchPlaceholder": "Search by title or creator…",
     "catalogueFilterTooltip": "Coming soon",
+    "catalogueViewAll": "View all in gallery →",
     "catalogueSortMostLiked": "Most liked",
     "catalogueSortNewest": "Newest",
     "catalogueSortMostForked": "Most forked",

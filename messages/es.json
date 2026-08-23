@@ -217,7 +217,10 @@
     "loading": "Cargando…",
     "empty": "Aún no hay creaciones públicas. ¡Sé el primero en publicar!",
     "emptyFiltered": "No se encontraron creaciones para esta etiqueta.",
-    "creationCount": "{count, plural, one {# esquema} other {# esquemas}}"
+    "creationCount": "{count, plural, one {# esquema} other {# esquemas}}",
+    "eyebrow": "Comunidad",
+    "subheading": "Explora schematics de pixel art — descárgalos como archivos .litematic.",
+    "startCreating": "Empezar a crear"
   },
   "CreationDetail": {
     "notFound": "Creación no encontrada",
@@ -245,6 +248,7 @@
   "Landing": {
     "navCreate": "Crear",
     "navGallery": "Galería",
+    "signIn": "Iniciar sesión",
     "navGalleryTooltip": "Próximamente",
     "navCta": "Empezar a Crear →",
     "heroEyebrow": "Gratis",
@@ -266,6 +270,7 @@
     "catalogueSubheading": "Explora esquemas de arte pixel creados por la comunidad — filtra por etiqueta, ordena por popularidad.",
     "catalogueSearchPlaceholder": "Buscar por título o creador…",
     "catalogueFilterTooltip": "Próximamente",
+    "catalogueViewAll": "Ver todo en la galería →",
     "catalogueSortMostLiked": "Más gustados",
     "catalogueSortNewest": "Más recientes",
     "catalogueSortMostForked": "Más bifurcados",
