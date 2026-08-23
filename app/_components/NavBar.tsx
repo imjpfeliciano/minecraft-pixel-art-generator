@@ -35,19 +35,19 @@ export default function NavBar() {
           >
             {t("navCreate")}
           </Link>
-          <span
-            className="cursor-not-allowed rounded-lg px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-600"
-            title={t("navGalleryTooltip")}
+          <Link
+            href="/gallery"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
             {t("navGallery")}
-          </span>
+          </Link>
         </div>
 
         {/* Right controls */}
         <div className="flex items-center gap-3">
-          <LocaleSwitcher />
-          <ThemeToggle />
           <Show when="signed-out">
+            <LocaleSwitcher />
+            <ThemeToggle />
             <SignInButton mode="modal">
               <button className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100">
                 Sign in

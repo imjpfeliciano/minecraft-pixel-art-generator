@@ -12,6 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useTheme, type ThemePreference } from "./ThemeProvider";
+import { useLocaleStore } from "./I18nProvider";
+import type { Locale } from "../_lib/i18n";
 
 interface Props {
   variant: "nav" | "sidebar";
@@ -36,6 +39,9 @@ export default function UserMenu({ variant }: Props) {
       .then((data: MeData | null) => { if (data) setMe(data); })
       .catch(() => {});
   }, [user]);
+
+  const { preference, setPreference } = useTheme();
+  const { locale, setLocale } = useLocaleStore();
 
   if (!isLoaded || !user) return null;
 
@@ -127,7 +133,7 @@ export default function UserMenu({ variant }: Props) {
 
         {nickname && (
           <DropdownMenuItem
-            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="cursor-pointer text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-gray-800"
             onClick={() => router.push(`/u/${nickname}`)}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -139,7 +145,7 @@ export default function UserMenu({ variant }: Props) {
         )}
 
         <DropdownMenuItem
-          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="cursor-pointer text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-gray-800"
           onClick={() => router.push("/dashboard")}
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -153,7 +159,7 @@ export default function UserMenu({ variant }: Props) {
 
         {!nickname && (
           <DropdownMenuItem
-            className="cursor-pointer text-grass hover:bg-grass/10 dark:hover:bg-grass/20"
+            className="cursor-pointer text-grass hover:bg-grass/10 dark:text-grass dark:hover:bg-grass/20"
             onClick={() => router.push("/onboarding")}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -162,6 +168,52 @@ export default function UserMenu({ variant }: Props) {
             {t("setNickname")} →
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuSeparator />
+
+        {/* Preferences */}
+        <div className="px-2 py-2 flex flex-col gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-zinc-500">
+            Preferences
+          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500 dark:text-zinc-400">Theme</span>
+            <div className="flex w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-600 text-xs font-medium">
+              {(["light", "dark", "system"] as ThemePreference[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setPreference(v)}
+                  className={`flex-1 py-1.5 capitalize transition-colors ${
+                    preference === v
+                      ? "bg-gray-200 text-gray-900 dark:bg-zinc-600 dark:text-zinc-100"
+                      : "text-gray-500 hover:text-gray-700 dark:text-zinc-300 dark:hover:text-zinc-100"
+                  }`}
+                >
+                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-gray-500 dark:text-zinc-400">Language</span>
+            <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-600 text-xs font-medium">
+              {(["en", "es"] as Locale[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setLocale(v)}
+                  className={`px-3 py-1.5 uppercase transition-colors ${
+                    locale === v
+                      ? "bg-gray-200 text-gray-900 dark:bg-zinc-600 dark:text-zinc-100"
+                      : "text-gray-500 hover:text-gray-700 dark:text-zinc-300 dark:hover:text-zinc-100"
+                  }`}
+                  aria-pressed={locale === v}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <DropdownMenuSeparator />
 
