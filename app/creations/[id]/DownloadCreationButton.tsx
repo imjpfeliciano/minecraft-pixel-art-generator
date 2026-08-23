@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { decodeGrid } from "../../_lib/creation-grid";
 import { downloadLitematic, generateLitematic } from "../../_lib/litematic-generator";
 import type { CreationJson } from "../../_lib/creation";
+import {
+  trackCreationDownloaded,
+  trackCreationDownloadFailed,
+} from "../../_lib/social-analytics";
 
 interface DownloadCreationButtonProps {
   creation: CreationJson;
@@ -37,11 +41,21 @@ export default function DownloadCreationButton({ creation }: DownloadCreationBut
           : undefined,
       );
 
-      downloadLitematic(litematic, creation.schematicName);
+      const filename = creation.schematicName.endsWith(".litematic")
+        ? creation.schematicName
+        : `${creation.schematicName}.litematic`;
+      downloadLitematic(litematic, filename);
+
+      trackCreationDownloaded({
+        width: creation.width,
+        height: creation.height,
+        orientation: creation.orientation,
+      });
 
       // Fire-and-forget download count increment
       fetch(`/api/creations/${creation.id}/download`, { method: "POST" }).catch(() => {});
     } catch {
+      trackCreationDownloadFailed();
       setError(t("downloadError"));
     } finally {
       setIsGenerating(false);
