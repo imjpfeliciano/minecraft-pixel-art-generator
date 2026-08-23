@@ -35,6 +35,25 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - ❌ `getTranslations("Namespace")` from `next-intl/server` — **always fails** at runtime ("Couldn't find next-intl config file"). Never use it.
 - ❌ `getLocale()`, `setRequestLocale()`, or any other `next-intl/server` import — same failure.
 
+**Every user-facing string must be translated (critical):**
+
+Never hardcode a user-visible string in JSX. Every label, button, heading, placeholder, tooltip, error message, and empty state must have a key in **both** `messages/en.json` and `messages/es.json` and be rendered via `t("key")`.
+
+```tsx
+// ❌ Hardcoded — breaks Spanish locale
+<button>Sign in</button>
+<p>Browse pixel art schematics — download as .litematic files.</p>
+
+// ✅ Translated
+<button>{t("signIn")}</button>
+<p>{t("subheading")}</p>
+```
+
+Adding a key checklist:
+1. Add the key to `messages/en.json` under the relevant namespace.
+2. Add the translated key to `messages/es.json` under the same namespace. Never copy the English value as a placeholder — write the actual Spanish translation.
+3. Use `t("key")` in the component. If the component is a server component, extract the JSX into a `"use client"` child (see pattern below).
+
 **Pattern for server pages that need translated UI:**
 
 Server components handle auth, data-fetching, and redirects. Translated content lives in a separate `"use client"` child:
