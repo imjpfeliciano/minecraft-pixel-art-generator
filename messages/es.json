@@ -52,7 +52,14 @@
     "loading3d": "Cargando visor 3D…",
     "saveButton": "Guardar",
     "visibilityPrivate": "Privado",
-    "visibilityPublic": "Público"
+    "visibilityPublic": "Público",
+    "loadingCreation": "Cargando creación…",
+    "loadCreationError": "Error al cargar la creación. Por favor, inténtalo de nuevo.",
+    "newCreationConfirmTitle": "¿Empezar una nueva creación?",
+    "newCreationConfirmBody": "Los cambios no guardados se perderán.",
+    "newCreationConfirmBodyEdit": "Estás editando \"{title}\". Los cambios no guardados se perderán.",
+    "newCreationConfirmContinue": "Continuar",
+    "newCreationConfirmCancel": "Volver"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensiones (bloques)",
@@ -164,6 +171,7 @@
   },
   "SaveModal": {
     "title": "Guardar Creación",
+    "editTitle": "Editar Creación",
     "titleLabel": "Título",
     "titlePlaceholder": "Ponle un nombre a tu arte pixel…",
     "titleRequired": "El título es obligatorio.",
@@ -178,12 +186,16 @@
     "nicknameRequiredHint": "Necesitas un apodo para publicar.",
     "nicknameSetLink": "Establecer apodo →",
     "save": "Guardar Creación",
+    "update": "Actualizar",
     "saving": "Guardando…",
     "cancel": "Cancelar",
+    "close": "Cerrar",
     "signInPrompt": "Inicia sesión para guardar y compartir tus creaciones de arte pixel.",
     "signInButton": "Iniciar sesión",
     "successTitle": "¡Guardado!",
     "successBody": "Tu creación ha sido guardada en tu panel.",
+    "updateSuccessTitle": "¡Actualizado!",
+    "updateSuccessBody": "Tus cambios han sido guardados.",
     "viewDashboard": "Ver en el Panel →",
     "errorGeneric": "Algo salió mal. Por favor, inténtalo de nuevo."
   },
@@ -191,7 +203,39 @@
     "visibilityPublic": "Público",
     "visibilityPrivate": "Privado",
     "dimensions": "{w} × {h} bloques",
+    "openInEditor": "Abrir en el editor",
+    "editButton": "Editar",
+    "publishButton": "Publicar",
+    "unpublishButton": "Despublicar",
     "deleteButton": "Eliminar"
+  },
+  "Gallery": {
+    "title": "Galería Comunitaria",
+    "description": "Explora schematics de pixel art de Minecraft creados por la comunidad.",
+    "filterAll": "Todos",
+    "loadMore": "Cargar más",
+    "loading": "Cargando…",
+    "empty": "Aún no hay creaciones públicas. ¡Sé el primero en publicar!",
+    "emptyFiltered": "No se encontraron creaciones para esta etiqueta.",
+    "creationCount": "{count, plural, one {# schematic} other {# schematics}}"
+  },
+  "CreationDetail": {
+    "notFound": "Creación no encontrada",
+    "by": "Por",
+    "dimensions": "{w} × {h} bloques",
+    "downloadButton": "Descargar .litematic",
+    "downloading": "Generando…",
+    "downloadError": "No se pudo generar el schematic. Por favor, inténtalo de nuevo.",
+    "privateNotice": "Esta creación es privada.",
+    "publishedAt": "Publicado",
+    "viewProfile": "Ver perfil"
+  },
+  "Profile": {
+    "notFound": "Perfil no encontrado",
+    "publicCreations": "{count, plural, one {# creación pública} other {# creaciones públicas}}",
+    "joined": "Unido",
+    "empty": "Aún no hay creaciones públicas.",
+    "viewGallery": "Explorar la galería"
   },
   "Landing": {
     "navCreate": "Crear",

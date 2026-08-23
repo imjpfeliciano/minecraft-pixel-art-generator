@@ -114,54 +114,63 @@ milestones:
 
   - id: m4
     name: "M4 · Manage creations (CRUD)"
-    status: pending
+    status: completed
     deliverable: "From the dashboard a user can publish/unpublish, edit title/description/tags, re-open in the editor, and delete a creation. Deletions clean up Storage."
     todos:
       - id: api-creations-item
-        content: Build GET / PATCH / DELETE /api/creations/[id] — ownership checks, Storage cleanup on delete, counter updates
-        status: pending
+        content: "Build GET / PATCH / DELETE /api/creations/[id] — ownership checks, PATCH accepts multipart (full re-save from editor) or JSON (metadata-only), Storage cleanup on delete, counter updates"
+        status: completed
       - id: api-creations-download
         content: Build POST /api/creations/[id]/download — increment downloadCount, no auth required
-        status: pending
-      - id: dashboard-actions
-        content: Add publish/unpublish toggle, edit-metadata dialog (reuses SaveCreationModal in edit mode), delete confirm dialog, and open-in-editor link to dashboard cards
-        status: pending
+        status: completed
+      - id: api-creations-grid
+        content: "Build GET /api/creations/[id]/grid — auth-aware, streams gzipped grid binary for editor hydration"
+        status: completed
+      - id: modal-edit
+        content: "Extend SaveCreationModal — optional existingCreation prop enables edit mode (pre-populated, sends PATCH); no blockGrid → JSON-only; blockGrid present → multipart re-upload"
+        status: completed
+      - id: card-actions
+        content: "Add hover action overlay to CreationCard owner variant — open-in-editor link, edit (pencil), publish/unpublish toggle, delete (trash)"
+        status: completed
+      - id: dashboard-wiring
+        content: "Wire DashboardGrid: edit modal state, optimistic publish toggle, delete with Storage cleanup, open-in-editor"
+        status: completed
       - id: editor-hydration
-        content: Support /create?creation=<id> — fetch creation, decodeGrid into editor state, Save becomes PATCH instead of POST
-        status: pending
+        content: "Support /create?creation=<id> — fetch creation + grid, decodeGrid into editor state, Save sends PATCH; loading banner while hydrating"
+        status: completed
       - id: i18n-m4
-        content: Add en.json + es.json keys for edit modal, delete confirm, and publish toggle
-        status: pending
+        content: "Add en.json + es.json keys: editTitle, update, close, updateSuccessTitle/Body (SaveModal); openInEditor, editButton, publishButton, unpublishButton (CreationCard); loadingCreation, loadCreationError (Page)"
+        status: completed
 
   - id: m5
     name: "M5 · Public surfaces"
-    status: pending
+    status: completed
     deliverable: "Published creations appear in the /gallery. Each has a shareable /creations/[id] page with OG tags and a client-side download. /u/[nickname] shows the creator's public portfolio. The landing page catalogue section shows real data."
     todos:
       - id: gallery-page
         content: Build /gallery — tag filter chips, newest sort, 24-per-page load-more, real CreationCard public variant
-        status: pending
+        status: completed
       - id: catalogue-section
         content: Rewrite landing CatalogueSection — fetch 6 most-recent public creations, remove frosted overlay, keep graceful empty state
-        status: pending
+        status: completed
       - id: creation-detail
         content: Build /creations/[id] — preview image (priority), title, tags, author link, DownloadCreationButton (client-side regenerate), generateMetadata OG + JSON-LD
-        status: pending
+        status: completed
       - id: profile-page
         content: Build /u/[nickname] — avatar, bio, join date, public creations grid, generateMetadata
-        status: pending
+        status: completed
       - id: navbar-gallery
         content: Enable the Gallery nav link in NavBar (remove coming-soon cursor-not-allowed state)
-        status: pending
+        status: completed
       - id: seo-wiring
         content: Add /gallery, /creations/[id], /u/[nickname] to app/sitemap.ts
-        status: pending
+        status: completed
       - id: firestore-rules
         content: Write Firestore + Storage security rules — deny all direct client access, public-read on preview images
-        status: pending
+        status: completed
       - id: i18n-m5
         content: Add en.json + es.json keys for gallery, detail page, and profile page
-        status: pending
+        status: completed
 
   - id: m6
     name: "M6 · Hardening"

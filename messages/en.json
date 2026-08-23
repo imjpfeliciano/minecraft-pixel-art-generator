@@ -52,7 +52,14 @@
     "loading3d": "Loading 3D viewer…",
     "saveButton": "Save",
     "visibilityPrivate": "Private",
-    "visibilityPublic": "Public"
+    "visibilityPublic": "Public",
+    "loadingCreation": "Loading creation…",
+    "loadCreationError": "Failed to load the creation. Please try again.",
+    "newCreationConfirmTitle": "Start a new creation?",
+    "newCreationConfirmBody": "Any unsaved changes will be lost.",
+    "newCreationConfirmBodyEdit": "You're editing \"{title}\". Any unsaved changes will be lost.",
+    "newCreationConfirmContinue": "Continue",
+    "newCreationConfirmCancel": "Go back"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensions (blocks)",
@@ -164,6 +171,7 @@
   },
   "SaveModal": {
     "title": "Save Creation",
+    "editTitle": "Edit Creation",
     "titleLabel": "Title",
     "titlePlaceholder": "Give your pixel art a name…",
     "titleRequired": "A title is required.",
@@ -178,12 +186,16 @@
     "nicknameRequiredHint": "You need a nickname to publish publicly.",
     "nicknameSetLink": "Set your nickname →",
     "save": "Save Creation",
+    "update": "Update",
     "saving": "Saving…",
     "cancel": "Cancel",
+    "close": "Close",
     "signInPrompt": "Sign in to save and share your pixel art creations.",
     "signInButton": "Sign in",
     "successTitle": "Saved!",
     "successBody": "Your creation has been saved to your dashboard.",
+    "updateSuccessTitle": "Updated!",
+    "updateSuccessBody": "Your changes have been saved.",
     "viewDashboard": "View in Dashboard →",
     "errorGeneric": "Something went wrong. Please try again."
   },
@@ -191,7 +203,39 @@
     "visibilityPublic": "Public",
     "visibilityPrivate": "Private",
     "dimensions": "{w} × {h} blocks",
+    "openInEditor": "Open in editor",
+    "editButton": "Edit",
+    "publishButton": "Publish",
+    "unpublishButton": "Unpublish",
     "deleteButton": "Delete"
+  },
+  "Gallery": {
+    "title": "Community Gallery",
+    "description": "Browse Minecraft pixel art schematics created by the community.",
+    "filterAll": "All",
+    "loadMore": "Load more",
+    "loading": "Loading…",
+    "empty": "No public creations yet. Be the first to publish!",
+    "emptyFiltered": "No creations found for this tag.",
+    "creationCount": "{count, plural, one {# schematic} other {# schematics}}"
+  },
+  "CreationDetail": {
+    "notFound": "Creation not found",
+    "by": "By",
+    "dimensions": "{w} × {h} blocks",
+    "downloadButton": "Download .litematic",
+    "downloading": "Generating…",
+    "downloadError": "Failed to generate the schematic. Please try again.",
+    "privateNotice": "This creation is private.",
+    "publishedAt": "Published",
+    "viewProfile": "View profile"
+  },
+  "Profile": {
+    "notFound": "Profile not found",
+    "publicCreations": "{count, plural, one {# public creation} other {# public creations}}",
+    "joined": "Joined",
+    "empty": "No public creations yet.",
+    "viewGallery": "Browse the gallery"
   },
   "Landing": {
     "navCreate": "Create",
