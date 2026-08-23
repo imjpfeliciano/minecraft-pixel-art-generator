@@ -16,7 +16,7 @@ import {
 import { encodeGrid } from "@/app/_lib/creation-grid";
 import { generateThumbnail } from "@/app/_lib/thumbnail";
 import type { MinecraftBlock } from "@/app/_lib/blocks";
-import type { Orientation, Visibility } from "@/app/_lib/creation";
+import type { CreationJson, Orientation, Visibility } from "@/app/_lib/creation";
 import { AVAILABLE_TAGS } from "@/app/_lib/tags";
 
 export interface SaveConfig {
@@ -33,23 +33,38 @@ export interface SaveConfig {
 interface SaveCreationModalProps {
   open: boolean;
   onClose: () => void;
-  blockGrid: MinecraftBlock[][];
-  initialVisibility: Visibility;
-  config: SaveConfig;
+  /** Present when opened from the editor (create or re-save). */
+  blockGrid?: MinecraftBlock[][];
+  initialVisibility?: Visibility;
+  config?: SaveConfig;
+  /**
+   * When set the modal is in **edit mode**:
+   *  - form is pre-populated from this creation
+   *  - submit sends PATCH /api/creations/{id}
+   *  - if blockGrid is also present → multipart (re-encode grid + thumbnail)
+   *  - if blockGrid is absent → JSON-only (metadata update from dashboard)
+   */
+  existingCreation?: Pick<CreationJson, "id" | "title" | "description" | "tags" | "visibility">;
+  /** Called with the saved/updated creation id on success. */
+  onSaved?: (id: string) => void;
 }
 
 export default function SaveCreationModal({
   open,
   onClose,
   blockGrid,
-  initialVisibility,
+  initialVisibility = "private",
   config,
+  existingCreation,
+  onSaved,
 }: SaveCreationModalProps) {
   const t = useTranslations("SaveModal");
   const router = useRouter();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn } = useUser();
 
-  const [title, setTitle] = useState(config.schematicName);
+  const isEditMode = !!existingCreation;
+
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<Visibility>(initialVisibility);
@@ -58,19 +73,25 @@ export default function SaveCreationModal({
   const [savedId, setSavedId] = useState<string | null>(null);
   const [needsNickname, setNeedsNickname] = useState(false);
 
-  // Reset form when modal opens
+  // Re-initialise form whenever the modal opens
   useEffect(() => {
-    if (open) {
-      setTitle(config.schematicName);
+    if (!open) return;
+    if (existingCreation) {
+      setTitle(existingCreation.title);
+      setDescription(existingCreation.description ?? "");
+      setSelectedTags(existingCreation.tags ?? []);
+      setVisibility(existingCreation.visibility);
+    } else {
+      setTitle(config?.schematicName ?? "PixelArt");
       setDescription("");
       setSelectedTags([]);
       setVisibility(initialVisibility);
-      setError(null);
-      setSavedId(null);
-      setNeedsNickname(false);
-      setIsSubmitting(false);
     }
-  }, [open, config.schematicName, initialVisibility]);
+    setError(null);
+    setSavedId(null);
+    setNeedsNickname(false);
+    setIsSubmitting(false);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleTag(slug: string) {
     setSelectedTags((prev) => {
@@ -81,54 +102,62 @@ export default function SaveCreationModal({
   }
 
   async function handleSave() {
-    if (!title.trim()) {
-      setError(t("titleRequired"));
-      return;
-    }
+    if (!title.trim()) { setError(t("titleRequired")); return; }
     setError(null);
     setNeedsNickname(false);
     setIsSubmitting(true);
 
     try {
-      const [gridBytes, previewBlob] = await Promise.all([
-        Promise.resolve(encodeGrid(blockGrid)),
-        generateThumbnail(blockGrid),
-      ]);
+      const url = isEditMode
+        ? `/api/creations/${existingCreation!.id}`
+        : "/api/creations";
+      const method = isEditMode ? "PATCH" : "POST";
 
-      const metadata = JSON.stringify({
-        title: title.trim(),
-        description: description.trim(),
-        tags: selectedTags,
-        visibility,
-        orientation: config.orientation,
-        width: config.width,
-        height: config.height,
-        schematicName: config.schematicName,
-        fillBlockId: config.fillBlockId || null,
-        foundation: {
-          enabled: config.foundationEnabled,
-          blockId: config.foundationBlockId,
-        },
-        blockCategories: Array.from(config.selectedCategories),
-      });
+      let res: Response;
 
-      const formData = new FormData();
-      formData.append("metadata", metadata);
-      formData.append(
-        "preview",
-        new Blob([previewBlob], { type: "image/png" }),
-        "preview.png",
-      );
-      formData.append(
-        "grid",
-        new Blob([gridBytes.buffer as ArrayBuffer], { type: "application/gzip" }),
-        "grid.json.gz",
-      );
+      if (blockGrid && config) {
+        // Full multipart — create or re-save from editor
+        const [gridBytes, previewBlob] = await Promise.all([
+          Promise.resolve(encodeGrid(blockGrid)),
+          generateThumbnail(blockGrid),
+        ]);
 
-      const res = await fetch("/api/creations", {
-        method: "POST",
-        body: formData,
-      });
+        const metadata = JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          tags: selectedTags,
+          visibility,
+          orientation: config.orientation,
+          width: config.width,
+          height: config.height,
+          schematicName: config.schematicName,
+          fillBlockId: config.fillBlockId || null,
+          foundation: {
+            enabled: config.foundationEnabled,
+            blockId: config.foundationBlockId,
+          },
+          blockCategories: Array.from(config.selectedCategories),
+        });
+
+        const formData = new FormData();
+        formData.append("metadata", metadata);
+        formData.append("preview", new Blob([previewBlob], { type: "image/png" }), "preview.png");
+        formData.append("grid", new Blob([gridBytes.buffer as ArrayBuffer], { type: "application/gzip" }), "grid.json.gz");
+
+        res = await fetch(url, { method, body: formData });
+      } else {
+        // Metadata-only JSON update from dashboard
+        res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim(),
+            tags: selectedTags,
+            visibility,
+          }),
+        });
+      }
 
       const data = await res.json();
 
@@ -136,13 +165,14 @@ export default function SaveCreationModal({
         setNeedsNickname(true);
         return;
       }
-
       if (!res.ok) {
         setError(data?.error?.message ?? t("errorGeneric"));
         return;
       }
 
-      setSavedId(data.id);
+      const savedCreationId = isEditMode ? existingCreation!.id : (data.id as string);
+      setSavedId(savedCreationId);
+      onSaved?.(savedCreationId);
     } catch {
       setError(t("errorGeneric"));
     } finally {
@@ -151,73 +181,56 @@ export default function SaveCreationModal({
   }
 
   function handleClose() {
-    if (savedId) {
-      router.push("/dashboard");
-    }
+    if (savedId && !isEditMode) router.push("/dashboard");
     onClose();
   }
+
+  const dialogTitle = isEditMode ? t("editTitle") : t("title");
+  const saveLabel = isEditMode ? t("update") : t("save");
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="sm:max-w-md">
+        {/* ── Success ──────────────────────────────────────────────────── */}
         {savedId ? (
-          /* ── Success state ──────────────────────────────────────────────── */
           <>
             <DialogHeader>
-              <DialogTitle>{t("successTitle")}</DialogTitle>
+              <DialogTitle>{isEditMode ? t("updateSuccessTitle") : t("successTitle")}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <svg
-                  className="h-7 w-7 text-green-600 dark:text-green-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
+                <svg className="h-7 w-7 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">
-                {t("successBody")}
+                {isEditMode ? t("updateSuccessBody") : t("successBody")}
               </p>
             </div>
             <DialogFooter>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-center rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors"
-              >
-                {t("viewDashboard")}
-              </Link>
+              {isEditMode ? (
+                <button
+                  onClick={handleClose}
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  {t("close")}
+                </button>
+              ) : (
+                <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors">
+                  {t("viewDashboard")}
+                </Link>
+              )}
             </DialogFooter>
           </>
         ) : !isSignedIn ? (
-          /* ── Not signed in ──────────────────────────────────────────────── */
+          /* ── Not signed in ─────────────────────────────────────────── */
           <>
-            <DialogHeader>
-              <DialogTitle>{t("title")}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{t("title")}</DialogTitle></DialogHeader>
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <svg
-                className="h-10 w-10 text-gray-300 dark:text-zinc-600"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
+              <svg className="h-10 w-10 text-gray-300 dark:text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <p className="text-sm text-gray-600 dark:text-zinc-400">
-                {t("signInPrompt")}
-              </p>
+              <p className="text-sm text-gray-600 dark:text-zinc-400">{t("signInPrompt")}</p>
               <SignInButton mode="modal">
                 <button className="rounded-lg bg-grass px-5 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors">
                   {t("signInButton")}
@@ -226,18 +239,15 @@ export default function SaveCreationModal({
             </div>
           </>
         ) : (
-          /* ── Save form ──────────────────────────────────────────────────── */
+          /* ── Form ──────────────────────────────────────────────────── */
           <>
-            <DialogHeader>
-              <DialogTitle>{t("title")}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{dialogTitle}</DialogTitle></DialogHeader>
 
             <div className="flex flex-col gap-4">
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  {t("titleLabel")}
-                  <span className="ml-1 text-red-500">*</span>
+                  {t("titleLabel")}<span className="ml-1 text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -251,9 +261,7 @@ export default function SaveCreationModal({
 
               {/* Description */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  {t("descriptionLabel")}
-                </label>
+                <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{t("descriptionLabel")}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -267,12 +275,8 @@ export default function SaveCreationModal({
               {/* Tags */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-                    {t("tagsLabel")}
-                  </label>
-                  <span className="text-xs text-gray-400 dark:text-zinc-500">
-                    {selectedTags.length}/3
-                  </span>
+                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{t("tagsLabel")}</label>
+                  <span className="text-xs text-gray-400 dark:text-zinc-500">{selectedTags.length}/3</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {AVAILABLE_TAGS.map((tag) => {
@@ -301,54 +305,35 @@ export default function SaveCreationModal({
 
               {/* Visibility */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-                  {t("visibilityLabel")}
-                </label>
+                <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{t("visibilityLabel")}</label>
                 <div className="flex items-center rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden text-xs font-medium w-fit">
                   <button
                     type="button"
-                    onClick={() => {
-                      setVisibility("private");
-                      setNeedsNickname(false);
-                    }}
-                    className={`px-3 py-1.5 transition-colors ${
-                      visibility === "private"
-                        ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100"
-                        : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
-                    }`}
+                    onClick={() => { setVisibility("private"); setNeedsNickname(false); }}
+                    className={`px-3 py-1.5 transition-colors ${visibility === "private" ? "bg-gray-200 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100" : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"}`}
                   >
                     🔒 {t("visibilityPrivate")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setVisibility("public")}
-                    className={`px-3 py-1.5 transition-colors ${
-                      visibility === "public"
-                        ? "bg-grass text-white"
-                        : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
-                    }`}
+                    className={`px-3 py-1.5 transition-colors ${visibility === "public" ? "bg-grass text-white" : "text-gray-500 hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"}`}
                   >
                     🌍 {t("visibilityPublic")}
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 dark:text-zinc-500">
-                  {visibility === "private"
-                    ? t("visibilityPrivateHint")
-                    : t("visibilityPublicHint")}
+                  {visibility === "private" ? t("visibilityPrivateHint") : t("visibilityPublicHint")}
                 </p>
               </div>
 
-              {/* Nickname required warning */}
               {needsNickname && (
                 <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
                   {t("nicknameRequiredHint")}{" "}
-                  <Link href="/onboarding" className="underline font-medium">
-                    {t("nicknameSetLink")}
-                  </Link>
+                  <Link href="/onboarding" className="underline font-medium">{t("nicknameSetLink")}</Link>
                 </div>
               )}
 
-              {/* Error */}
               {error && (
                 <div className="rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-xs text-red-700 dark:text-red-300">
                   {error}
@@ -371,7 +356,7 @@ export default function SaveCreationModal({
                 disabled={isSubmitting || !title.trim()}
                 className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? t("saving") : t("save")}
+                {isSubmitting ? t("saving") : saveLabel}
               </button>
             </DialogFooter>
           </>

@@ -9,13 +9,17 @@ import { AVAILABLE_TAGS } from "@/app/_lib/tags";
 interface CreationCardProps {
   creation: CreationJson;
   variant: "owner" | "public";
+  onEdit?: (creation: CreationJson) => void;
   onDelete?: (id: string) => void;
+  onToggleVisibility?: (creation: CreationJson) => void;
 }
 
 export default function CreationCard({
   creation,
   variant,
+  onEdit,
   onDelete,
+  onToggleVisibility,
 }: CreationCardProps) {
   const t = useTranslations("CreationCard");
 
@@ -31,7 +35,7 @@ export default function CreationCard({
           src={creation.previewImageUrl}
           alt={creation.title}
           fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
           className="object-cover transition-transform duration-200 group-hover:scale-105"
           unoptimized
         />
@@ -39,29 +43,87 @@ export default function CreationCard({
         {/* Visibility badge — owner only */}
         {variant === "owner" && (
           <span
-            className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            className={`absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
               creation.visibility === "public"
                 ? "bg-green-500 text-white"
                 : "bg-gray-800/70 text-gray-200"
             }`}
           >
-            {creation.visibility === "public"
-              ? t("visibilityPublic")
-              : t("visibilityPrivate")}
+            {creation.visibility === "public" ? t("visibilityPublic") : t("visibilityPrivate")}
           </span>
+        )}
+
+        {/* Owner action overlay — appears on hover */}
+        {variant === "owner" && (
+          <div className="absolute inset-0 flex flex-col items-end justify-end gap-1 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/50 to-transparent">
+            {/* Open in editor */}
+            <Link
+              href={`/create?creation=${creation.id}`}
+              title={t("openInEditor")}
+              className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-gray-700 hover:bg-white transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M10 3h3v3M13 3l-6 6M6 4H3v9h9v-3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            {/* Edit metadata */}
+            {onEdit && (
+              <button
+                title={t("editButton")}
+                onClick={() => onEdit(creation)}
+                className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-gray-700 hover:bg-white transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M11 2.5a1.5 1.5 0 012.12 2.12L5 13H3v-2L11 2.5z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            {/* Publish / unpublish */}
+            {onToggleVisibility && (
+              <button
+                title={creation.visibility === "public" ? t("unpublishButton") : t("publishButton")}
+                onClick={() => onToggleVisibility(creation)}
+                className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-gray-700 hover:bg-white transition-colors"
+              >
+                {creation.visibility === "public" ? (
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" strokeLinecap="round" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <path d="M2 2l12 12" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z" strokeLinecap="round" />
+                    <circle cx="8" cy="8" r="1.5" />
+                  </svg>
+                )}
+              </button>
+            )}
+            {/* Delete */}
+            {onDelete && (
+              <button
+                title={t("deleteButton")}
+                onClick={() => onDelete(creation.id)}
+                className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 4h10M6 4V2h4v2M5 4v8a1 1 0 001 1h4a1 1 0 001-1V4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       {/* Card body */}
-      <div className="flex flex-1 flex-col gap-1.5 p-2">
+      <div className="flex flex-col gap-1 p-2">
         <h3 className="line-clamp-1 text-xs font-semibold text-gray-900 dark:text-zinc-100">
           {creation.title}
         </h3>
-
         <p className="text-[10px] text-gray-400 dark:text-zinc-500">
           {t("dimensions", { w: creation.width, h: creation.height })}
         </p>
-
         {tagLabels.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tagLabels.map((label) => (
@@ -74,27 +136,10 @@ export default function CreationCard({
             ))}
           </div>
         )}
-
-        {/* Public author credit */}
         {variant === "public" && creation.authorNickname && (
-          <Link
-            href={`/u/${creation.authorNickname}`}
-            className="mt-auto text-[10px] text-grass hover:underline"
-          >
+          <Link href={`/u/${creation.authorNickname}`} className="text-[10px] text-grass hover:underline">
             @{creation.authorNickname}
           </Link>
-        )}
-
-        {/* Owner actions */}
-        {variant === "owner" && onDelete && (
-          <div className="mt-auto flex items-center justify-end">
-            <button
-              onClick={() => onDelete(creation.id)}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
-            >
-              {t("deleteButton")}
-            </button>
-          </div>
         )}
       </div>
     </div>
