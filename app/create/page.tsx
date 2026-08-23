@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useUser } from "@clerk/nextjs";
+import { useSearchParams, useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import ImageUpload from "../_components/ImageUpload";
 import ControlPanel from "../_components/ControlPanel";
@@ -13,7 +14,13 @@ import BlockLegend from "../_components/BlockLegend";
 import ThemeToggle from "../_components/ThemeToggle";
 import LocaleSwitcher from "../_components/LocaleSwitcher";
 import UserMenu from "../_components/UserMenu";
-import SaveCreationModal from "../_components/SaveCreationModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../_components/ui/dialog";
 import {
   GENERATION_BLOCK_CATEGORIES,
   GENERATION_BLOCKS,
@@ -23,7 +30,9 @@ import {
 import { mapPixelsToBlocks } from "../_lib/color-matcher";
 import { loadAndResizeImage } from "../_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "../_lib/litematic-generator";
-import type { Visibility } from "../_lib/creation";
+import { decodeGrid } from "../_lib/creation-grid";
+import SaveCreationModal from "../_components/SaveCreationModal";
+import type { CreationJson, Visibility } from "../_lib/creation";
 
 // Loading placeholder for the 3D viewer — needs translations so it's a component
 function Loading3DViewer() {
@@ -108,9 +117,11 @@ function StepTracker({ steps }: { steps: Step[] }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CreatePage() {
+function CreatePageInner() {
   const t = useTranslations("Page");
   const { isSignedIn } = useUser();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -153,6 +164,52 @@ export default function CreatePage() {
   // Save modal
   const [visibility, setVisibility] = useState<Visibility>("private");
   const [showSaveModal, setShowSaveModal] = useState(false);
+  // When set, the editor was opened from the dashboard ("re-open in editor")
+  const [loadedCreation, setLoadedCreation] = useState<CreationJson | null>(null);
+  const [isLoadingCreation, setIsLoadingCreation] = useState(false);
+  // Pending image when user tries to load a new image while in edit mode
+  const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
+
+  // Hydrate editor from ?creation=<id>
+  useEffect(() => {
+    const creationId = searchParams.get("creation");
+    if (!creationId) return;
+    setIsLoadingCreation(true);
+
+    Promise.all([
+      fetch(`/api/creations/${creationId}`).then((r) => r.json() as Promise<CreationJson>),
+      fetch(`/api/creations/${creationId}/grid`).then((r) => r.arrayBuffer()),
+    ])
+      .then(([creation, gridBuffer]) => {
+        const grid = decodeGrid(new Uint8Array(gridBuffer));
+        setLoadedCreation(creation);
+        setBlockGrid(grid);
+        setWidth(creation.width);
+        setHeight(creation.height);
+        setOrientation(creation.orientation as Orientation);
+        setSchematicName(creation.schematicName);
+        setFillBlockId(creation.fillBlockId ?? "");
+        setFoundationEnabled(creation.foundation.enabled);
+        setFoundationBlockId(creation.foundation.blockId);
+        if (creation.blockCategories.length > 0) {
+          setSelectedCategories(new Set(creation.blockCategories));
+        }
+        setVisibility(creation.visibility);
+        // Regenerate the litematic from the loaded grid
+        setLastLitematic(
+          generateLitematic(
+            grid,
+            creation.orientation as Orientation,
+            creation.schematicName,
+            creation.foundation.enabled ? { blockId: creation.foundation.blockId } : undefined,
+          ),
+        );
+        setUndoStack([]);
+      })
+      .catch(() => setError(t("loadCreationError")))
+      .finally(() => setIsLoadingCreation(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Undo stack for block edits
   const [undoStack, setUndoStack] = useState<
@@ -167,8 +224,7 @@ export default function CreatePage() {
     };
   }, []);
 
-  const handleImageSelected = useCallback((file: File, url: string) => {
-    // Revoke the previous blob URL before replacing it
+  const applyNewImage = useCallback((file: File, url: string) => {
     if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
     imagePreviewUrlRef.current = url;
     setImageFile(file);
@@ -178,6 +234,31 @@ export default function CreatePage() {
     setUndoStack([]);
     setError(null);
   }, []);
+
+  const handleImageSelected = useCallback(
+    (file: File, url: string) => {
+      if (loadedCreation) {
+        // Intercept: ask for confirmation before discarding edit-mode state
+        setPendingImage({ file, url });
+        return;
+      }
+      applyNewImage(file, url);
+    },
+    [loadedCreation, applyNewImage]
+  );
+
+  const handleConfirmNewCreation = useCallback(() => {
+    if (!pendingImage) return;
+    setLoadedCreation(null);
+    router.replace("/create", { scroll: false });
+    applyNewImage(pendingImage.file, pendingImage.url);
+    setPendingImage(null);
+  }, [pendingImage, applyNewImage, router]);
+
+  const handleCancelNewCreation = useCallback(() => {
+    if (pendingImage) URL.revokeObjectURL(pendingImage.url);
+    setPendingImage(null);
+  }, [pendingImage]);
 
   const pushUndo = useCallback(
     (currentGrid: MinecraftBlock[][], currentLitematic: Uint8Array | null) => {
@@ -413,6 +494,15 @@ export default function CreatePage() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Loading banner — shown while hydrating from ?creation=id */}
+        {isLoadingCreation && (
+          <div className="absolute inset-x-0 top-[57px] z-10 flex items-center gap-2 bg-grass px-4 py-2 text-xs font-medium text-white">
+            <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+            </svg>
+            {t("loadingCreation")}
+          </div>
+        )}
         {/* ── Sidebar ───────────────────────────────────────────────────────── */}
         <aside className="w-80 flex-shrink-0 border-r border-gray-100 dark:border-zinc-800 overflow-y-auto p-5 flex flex-col gap-6">
           {/* Step tracker */}
@@ -817,8 +907,48 @@ export default function CreatePage() {
             foundationBlockId,
             selectedCategories,
           }}
+          existingCreation={loadedCreation ?? undefined}
         />
       )}
+
+      {/* ── New-creation confirmation dialog ──────────────────────────── */}
+      <Dialog
+        open={pendingImage !== null}
+        onOpenChange={(open) => { if (!open) handleCancelNewCreation(); }}
+      >
+        <DialogContent className="max-w-sm bg-white dark:bg-zinc-900">
+          <DialogHeader>
+            <DialogTitle>{t("newCreationConfirmTitle")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-zinc-400">
+            {loadedCreation
+              ? t("newCreationConfirmBodyEdit", { title: loadedCreation.title })
+              : t("newCreationConfirmBody")}
+          </p>
+          <DialogFooter className="gap-2">
+            <button
+              onClick={handleCancelNewCreation}
+              className="px-4 py-2 text-sm rounded-md border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t("newCreationConfirmCancel")}
+            </button>
+            <button
+              onClick={handleConfirmNewCreation}
+              className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              {t("newCreationConfirmContinue")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense>
+      <CreatePageInner />
+    </Suspense>
   );
 }
