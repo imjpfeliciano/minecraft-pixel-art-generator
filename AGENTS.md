@@ -224,6 +224,8 @@ Every todo needs a stable kebab-case `id`. **Ids are immutable** — sync cannot
 | `/plan-status` | Read-only terminal status report. |
 | `/plan-groom` | Backlog triage — stale, blocked, untriaged, drift. |
 | `/plan-dashboard` | Publish the shareable dashboard Artifact. |
+| `/plan-issue <n>` | Research an issue and post an implementation plan for your review. |
+| `/fix-issue <n>` | Implement an issue in an isolated worktree and open a draft PR. |
 
 Underlying scripts (`scripts/pm/`) do the deterministic work and can be run directly:
 
@@ -235,6 +237,55 @@ pnpm pm:sync --apply       # execute
 pnpm pm:project --apply    # put issues on the board, set Area/Priority/Spec from labels
 pnpm pm:snapshot           # JSON view of project state
 ```
+
+### Verification gates
+
+Every change — human or agent — must pass all three before commit:
+
+```bash
+pnpm typecheck             # tsc --noEmit — must be zero
+pnpm check:i18n            # en/es key parity + untranslated-placeholder detection
+pnpm check:lint            # lint ratchet — must not regress
+```
+
+`check:i18n` enforces the translation rules above mechanically. Values legitimately identical in both locales are allowlisted in `scripts/pm/check-i18n.mjs` — add to that list with a justification rather than letting the warning become background noise.
+
+`check:lint` exists because **`pnpm lint` is currently red on `main`** — 17 pre-existing eslint errors, mostly React Compiler diagnostics. A zero-error gate would block every change or invite unrelated cleanup, so the ratchet compares per-file error counts against `.claude/pm/lint-baseline.json` and fails only on regressions. Clearing the backlog is its own piece of work; `check:lint --update` is a deliberate re-baseline after genuinely improving things, never a way past a red gate.
+
+### Plan → review → implement
+
+Issues that turn on a real decision — which library, which approach, how to configure something — get a researched plan **before** any code is written, and you approve it:
+
+```
+/plan-issue 24                 # research (incl. web), post plan as a comment → plan/proposed
+   ← you review in GitHub, comment, iterate
+/plan-issue 24 --approve       # → plan/approved
+/fix-issue 24                  # agent implements against the approved plan
+```
+
+The plan lives as an issue comment marked `<!-- plan:v1 -->`, so review happens where the issue already is and `/fix-issue` reads it back as the agent's brief. Iterating posts a **new** comment rather than editing the old one — the disagreement and its resolution are worth keeping. A plan big enough to be a design document can be promoted into a `plans/*.md` spec with `--promote`.
+
+`/plan-issue` writes nothing but the comment: no code, no config, no dependencies.
+
+| Label | Meaning |
+|---|---|
+| `plan/needed` | Needs a plan before any code. `/fix-issue` refuses. |
+| `plan/proposed` | Plan posted, awaiting your review. `/fix-issue` refuses. |
+| `plan/approved` | Approved — `/fix-issue` follows it as written. |
+
+Skip the plan step for genuinely self-contained issues; a one-line fix needs a plan, not a literature review.
+
+### Agent dispatch
+
+`/fix-issue <n>` implements an issue in an isolated git worktree (your checkout is untouched), runs the gates, and opens a **draft** PR with `Closes #N`. The contract lives in `.claude/agents/issue-implementer.md`.
+
+| Label | Meaning |
+|---|---|
+| `agent/needs-human` | Do not dispatch. `/fix-issue` refuses these. |
+| `agent/in-flight` | A run is working it now — the lock, set and cleared by `/fix-issue`. |
+| `agent/ready` | Reviewed as self-contained enough to hand over unattended. |
+
+An agent never merges, never pushes to `main`, and never marks a todo complete in `plans/` — that happens through `pnpm pm:sync` after the PR merges. If it finds mid-run that an approved plan is wrong, it stops and reports rather than substituting its own approach.
 
 Run `pm:project` after `pm:sync`. Board field values are derived from issue labels, so labels stay the source of truth and the board is a projection — never a second place to edit status.
 

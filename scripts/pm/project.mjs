@@ -72,13 +72,13 @@ for (const iss of issues) {
   }
 
   const want = [
-    ["Area", area && optionId("Area", area), area],
-    ["Priority", prio && optionId("Priority", prio.toUpperCase()), prio],
-    ["Spec", spec, spec],
-    ["Agent", optionId("Agent", "unassigned"), "unassigned"],
+    ["Area", area && optionId("Area", area)],
+    ["Priority", prio && optionId("Priority", prio.toUpperCase())],
+    ["Spec", spec],
+    ["Agent", optionId("Agent", "unassigned")],
   ];
 
-  for (const [fieldName, valueId, display] of want) {
+  for (const [fieldName, valueId] of want) {
     if (!valueId) continue;
     const f = fields[fieldName];
     if (!f) continue;

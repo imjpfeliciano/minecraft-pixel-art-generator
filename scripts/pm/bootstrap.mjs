@@ -54,10 +54,14 @@ const LABELS = [
   ["status/in-progress",  "0052CC", "Actively being worked"],
   ["status/needs-triage", "E99695", "Untriaged — groom me"],
   ["status/needs-spec",   "E99695", "Needs a spec before work can start"],
-  // agent/* — the phase-2 seam. Created now, nothing consumes them yet.
+  // agent/* — dispatch control for /fix-issue
   ["agent/ready",       "5319E7", "Self-contained enough to hand to an AI agent unattended"],
   ["agent/needs-human", "5319E7", "Explicitly do NOT dispatch to an agent"],
-  ["agent/in-flight",   "5319E7", "An agent is currently working this (set by phase 2)"],
+  ["agent/in-flight",   "5319E7", "An agent is currently working this"],
+  // plan/* — the research-and-approve lifecycle that runs before implementation
+  ["plan/needed",       "BFD4F2", "Needs an implementation plan before any code is written"],
+  ["plan/proposed",     "BFD4F2", "A plan has been posted as a comment, awaiting author review"],
+  ["plan/approved",     "0E8A16", "Plan reviewed and approved — /fix-issue will follow it"],
 ];
 
 // spec/* labels are created on demand by pm:sync, one per spec file.
