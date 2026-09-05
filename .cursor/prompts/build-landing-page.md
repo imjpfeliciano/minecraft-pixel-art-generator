@@ -1,6 +1,6 @@
 # Build Landing Page
 
-Implement the landing page as defined in @.cursor/plans/landing-page.md.
+Implement the landing page as defined in @plans/landing-page.md.
 
 ## Codebase context
 

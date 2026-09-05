@@ -181,7 +181,7 @@ The footer/secondary surfaces inside floating elements (`DialogFooter`, section 
 
 ## SEO
 
-SEO is a first-class concern. Consult [`.cursor/plans/seo.md`](.cursor/plans/seo.md) for the full strategy. Every change should respect these rules:
+SEO is a first-class concern. Consult [`plans/seo.md`](plans/seo.md) for the full strategy. Every change should respect these rules:
 
 - Every page **must** export a `metadata` object (Next.js Metadata API) with a meaningful `title` and `description`.
 - The root layout must always define `metadataBase`, `openGraph`, and `twitter` fields.
@@ -190,3 +190,58 @@ SEO is a first-class concern. Consult [`.cursor/plans/seo.md`](.cursor/plans/seo
 - Images used as hero or OG assets must include descriptive `alt` text and the `priority` prop when above the fold.
 - Do not introduce `noindex` on pages that should rank (landing page, any future gallery/creation detail pages).
 - `metadata` must be exported from a **server component**. If a page's root component is `"use client"`, wrap it: keep a thin server component as `page.tsx` and render the client component as a child.
+
+---
+
+## Project management
+
+Planned work lives in `plans/*.md` and is synced to GitHub Issues. The pipeline:
+
+```
+plans/<slug>.md  →  GitHub Issues  →  Projects v2 board  →  dashboard Artifact
+```
+
+**Authority rule:** the spec owns *content* (title, description, priority, area); GitHub owns *state* (open/closed). Editing a todo updates its issue; closing an issue updates the spec.
+
+### Spec files
+
+Each file carries YAML frontmatter with a `kind:`:
+
+- `kind: plan` — trackable work. Todos sync to issues.
+- `kind: reference` — architecture and reference docs (`analytics.md`, `i18n.md`). Never synced.
+
+A spec uses either `milestones:` (each with nested `todos:`) or a flat top-level `todos:` list. Both shapes are permanently supported; a flat list is treated as one implicit milestone named `main`. See `/plan-spec` for the full schema.
+
+Every todo needs a stable kebab-case `id`. **Ids are immutable** — sync cannot distinguish a rename from a delete-plus-create.
+
+### Skills
+
+| Skill | Use |
+|---|---|
+| `/plan-bootstrap` | One-time: gh auth, labels, Projects board. |
+| `/plan-spec` | Write a new spec or normalize an existing one. |
+| `/plan-sync` | Reconcile specs ↔ Issues. Dry run by default. |
+| `/plan-status` | Read-only terminal status report. |
+| `/plan-groom` | Backlog triage — stale, blocked, untriaged, drift. |
+| `/plan-dashboard` | Publish the shareable dashboard Artifact. |
+
+Underlying scripts (`scripts/pm/`) do the deterministic work and can be run directly:
+
+```bash
+pnpm pm:spec validate      # structural check of every spec
+pnpm pm:spec summary       # todo counts per spec
+pnpm pm:sync               # dry run — writes nothing
+pnpm pm:sync --apply       # execute
+pnpm pm:project --apply    # put issues on the board, set Area/Priority/Spec from labels
+pnpm pm:snapshot           # JSON view of project state
+```
+
+Run `pm:project` after `pm:sync`. Board field values are derived from issue labels, so labels stay the source of truth and the board is a projection — never a second place to edit status.
+
+### Rules
+
+- **Never hand-edit a `github:` block in spec frontmatter.** Use `pnpm pm:spec patch`. The frontmatter in `socialization-platform.md` is 190+ lines and the round-trip is formatting-sensitive.
+- **Never flip a todo to `completed` without checking the code does the thing.** Two specs drifted that way for months.
+- Issue lookup goes through the `spec/<slug>` label, never `gh issue list --search` — GitHub's body-search index lags and causes duplicate issues.
+- `pnpm pm:sync` is idempotent. A second run on unchanged inputs must report no changes; if it doesn't, something is wrong.
+- PRs should reference the issue they close (`Closes #42`), per the PR template.

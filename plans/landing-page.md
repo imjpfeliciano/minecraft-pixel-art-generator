@@ -1,48 +1,74 @@
 ---
 name: Landing Page
+slug: landing-page
+kind: plan
+status: shipped
+area: landing
+priority: p1
 overview: >
-  Split the socialization plan in two (landing page vs. social features), then build a
-  high-conversion, desktop-only landing page at `/` with a hero + how-it-works strip,
-  catalogue placeholder, and tags section — moving the current editor to `/create`.
+  Split the socialization plan in two (landing page vs. social features), then build a high-conversion, desktop-only landing page at `/` with a hero + how-it-works strip, catalogue placeholder, and tags section — moving the current editor to `/create`.
 todos:
   - id: split-plans
     content: >
-      Trim socialization-platform.md: remove routing-reshuffle and landing-page todos
-      (now owned by this plan)
-    status: pending
+      Trim socialization-platform.md: remove routing-reshuffle and landing-page todos (now owned by this plan)
+    status: completed
+    type: docs
+    priority: p1
   - id: shadcn-init
     content: "Initialize shadcn/ui and add required components: button, badge, card, dialog, input, label, textarea, separator"
-    status: pending
+    status: completed
+    type: chore
+    priority: p1
   - id: routing-reshuffle
     content: "Copy app/page.tsx → app/create/page.tsx (verbatim); replace app/page.tsx with new landing page shell"
-    status: pending
+    status: completed
+    type: refactor
+    priority: p1
   - id: demo-assets
-    content: "Add public/demo/original.jpg and public/demo/pixel-art.png for the hero before/after showcase"
-    status: pending
+    content: "Add public/demo/original.png and public/demo/pixel-art.png for the hero before/after showcase (shipped as .png, not the originally-planned .jpg)"
+    status: completed
+    type: chore
+    priority: p1
   - id: tags-lib
     content: Create app/_lib/tags.ts with AVAILABLE_TAGS static array and Tag type
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: navbar
     content: "Create app/_components/NavBar.tsx (logo, /create link, theme + locale toggles); wire into app/layout.tsx"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: hero-section
     content: "Build app/_components/landing/HeroSection.tsx: headline, subheadline, single CTA, static before/after demo (ComparisonDivider), inline stats strip"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: how-it-works
     content: "Build app/_components/landing/HowItWorksSection.tsx: 3-step row (Upload → Configure → Download)"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: catalogue-section
     content: "Build app/_components/landing/CatalogueSection.tsx: disabled filter bar + sort + search, 6 shimmer CreationCard skeletons, coming-soon overlay"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: tags-section
     content: "Build app/_components/landing/TagsSection.tsx: Badge grid from AVAILABLE_TAGS + TagRequestModal (dialog form)"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: api-tags-stub
     content: Create app/api/tags/request/route.ts stub returning 202 Accepted
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: assemble-landing
     content: "Assemble app/page.tsx (server component): NavBar + HeroSection + HowItWorksSection + CatalogueSection + TagsSection + Footer"
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
 ---
 
 # Landing Page
@@ -51,8 +77,8 @@ todos:
 
 The existing `socialization-platform.md` plan is split into two files:
 
-- `.cursor/plans/landing-page.md` — **this plan**, landing page work only
-- `.cursor/plans/socialization-platform.md` — trimmed to social/auth features only (`routing-reshuffle` and `landing-page` todos removed from there)
+- `plans/landing-page.md` — **this plan**, landing page work only
+- `plans/socialization-platform.md` — trimmed to social/auth features only (`routing-reshuffle` and `landing-page` todos removed from there)
 
 ---
 
@@ -144,7 +170,7 @@ Tag requests POST to `/api/tags/request` — a stub that returns `202 Accepted`.
 | `app/_components/landing/TagRequestModal.tsx` | Dialog form: tag name + description + submit |
 | `app/_lib/tags.ts` | Static `AVAILABLE_TAGS` definition |
 | `app/api/tags/request/route.ts` | Stub POST handler — 202 Accepted |
-| `public/demo/original.jpg` | Source image for hero before/after demo |
+| `public/demo/original.png` | Source image for hero before/after demo |
 | `public/demo/pixel-art.png` | Pre-generated pixel art result for hero demo |
 
 ---

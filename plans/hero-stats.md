@@ -1,3 +1,56 @@
+---
+name: Hero Stats
+slug: hero-stats
+kind: plan
+status: draft
+area: landing
+priority: p2
+overview: Restore the hero stats bar once real data is available. The section was removed at launch because the numbers were fabricated; this plan instruments real generation events, exposes a cached read API, and re-renders the strip from live counts.
+todos:
+  - id: storage-decision
+    content: "Decide on storage for generation counters: Vercel KV (fast, no auth dependency) vs Firestore (consistent with the socialization work). Document the choice in this plan."
+    status: pending
+    type: chore
+    priority: p2
+    github:
+      issue: 4
+  - id: instrument-downloads
+    content: Instrument the download handler in app/create/page.tsx to write a generation event to the chosen store
+    status: pending
+    type: feat
+    priority: p2
+    github:
+      issue: 5
+  - id: stats-api
+    content: Create app/api/stats/route.ts returning aggregate counts with proper Cache-Control headers
+    status: pending
+    type: feat
+    priority: p2
+    github:
+      issue: 6
+  - id: restore-hero-strip
+    content: Restore the stats bar in app/_components/landing/HeroSection.tsx (removed code is in git history)
+    status: pending
+    type: feat
+    priority: p2
+    github:
+      issue: 7
+  - id: isr-revalidate
+    content: Add ISR revalidation (revalidate = 3600) to app/page.tsx so counts refresh without a redeploy
+    status: pending
+    type: feat
+    priority: p2
+    github:
+      issue: 8
+  - id: qa-counts
+    content: QA — verify counts are reasonable against the store before enabling on production
+    status: pending
+    type: test
+    priority: p2
+    github:
+      issue: 9
+---
+
 # Hero Stats — Tracking & Display Plan
 
 ## Goal

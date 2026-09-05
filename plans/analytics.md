@@ -1,3 +1,11 @@
+---
+name: Analytics Event Reference
+slug: analytics
+kind: reference
+status: active
+overview: Catalogue of every Vercel Analytics event the app emits — naming convention, property shapes, and the per-surface event list. Reference material, not a work plan; `pm:sync` skips it.
+---
+
 # Analytics Event Reference
 
 ## Overview

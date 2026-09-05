@@ -5,7 +5,7 @@
 ## Why
 
 <!-- Context or motivation. Link a relevant issue, plan doc, or user story if one exists.
-     e.g. Closes #42 · Relates to .cursor/plans/hero-stats.md -->
+     e.g. Closes #42 · Relates to plans/hero-stats.md -->
 
 ## Type of change
 
@@ -46,8 +46,10 @@ pnpm dev
 
 ### General
 
-- [ ] `pnpm tsc --noEmit` passes with no new errors
+- [ ] `pnpm typecheck` passes with no new errors
 - [ ] No `console.log` or debug code left in
+- [ ] Linked the issue this closes (`Closes #N`) — or noted why there isn't one
+- [ ] If this completes a todo in `plans/`, ran `pnpm pm:sync` to reconcile
 
 ### UI / Components
 
@@ -67,7 +69,7 @@ pnpm dev
 
 - [ ] New CTA clicks are tracked via `landing-analytics.ts`
 - [ ] New landing sections fire `trackSectionVisible` via `useSectionTracking`
-- [ ] Event names follow the `snake_case` convention documented in `.cursor/plans/analytics.md`
+- [ ] Event names follow the `snake_case` convention documented in `plans/analytics.md`
 
 ### Accessibility & semantics
 

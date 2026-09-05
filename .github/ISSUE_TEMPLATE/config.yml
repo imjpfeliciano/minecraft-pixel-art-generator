@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Plan / spec documents
+    url: https://github.com/imjpfeliciano/minecraft-pixel-art-generator/tree/main/plans
+    about: Planned work lives in plans/*.md and is synced to issues by `pnpm pm:sync`. Read the spec before filing planned work by hand.

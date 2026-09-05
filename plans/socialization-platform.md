@@ -1,5 +1,10 @@
 ---
 name: Socialization Platform
+slug: socialization-platform
+kind: plan
+status: active
+area: social
+priority: p1
 overview: "Phase 1 of the social layer: the single-user vertical slice. A visitor signs up with Clerk, generates pixel art at /create, saves it to their account, optionally publishes it to the public gallery, and manages their saved creations (CRUD) from a dashboard. Backed by Firestore + Firebase Storage behind server-only Route Handlers. Domain data is keyed on a platform-owned internal userId — never a Clerk id — with verified email as the cross-environment reconciliation key and a user-chosen nickname as the public handle, so the same records work in local and production. Likes, comments, forks and stats are deliberately deferred to later phases so this slice can ship end-to-end. The landing page and /create routing move are already complete (see landing-page.md); Clerk is already installed and wired into proxy.ts and app/layout.tsx."
 milestones:
   - id: m0
@@ -180,9 +185,15 @@ milestones:
       - id: clerk-webhook
         content: Build POST /api/webhooks/clerk with svix verification — user.updated (refresh mirror, re-key emailIndex), user.deleted (unlink authLinks, purge when no links remain)
         status: pending
+        type: feat
+        github:
+          issue: 20
       - id: seed-script
         content: Add scripts/seed-user.mjs — create an internal user from a plain email + display name, no Clerk account required (for fixture data)
         status: pending
+        type: chore
+        github:
+          issue: 21
 
 isProject: false
 ---
@@ -756,7 +767,7 @@ Grid payloads are publicly readable by URL, which is correct for public creation
 
 ## SEO Requirements
 
-Per `AGENTS.md` and `.cursor/plans/seo.md`, non-negotiable for this phase:
+Per `AGENTS.md` and `plans/seo.md`, non-negotiable for this phase:
 
 - Every new page exports `metadata` or `generateMetadata()` with a meaningful title and description.
 - `app/sitemap.ts` gains `/gallery` plus dynamically generated entries for every public creation and every profile with at least one public creation. Keep the existing root entry.

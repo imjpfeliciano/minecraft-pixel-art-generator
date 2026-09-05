@@ -1,0 +1,220 @@
+{
+  "owner": "imjpfeliciano",
+  "repo": "imjpfeliciano/minecraft-pixel-art-generator",
+  "projectNumber": 2,
+  "fields": [
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRg4",
+      "name": "Title",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRg8",
+      "name": "Assignees",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOAFupvs4BikupzhhcRhA",
+      "name": "Status",
+      "options": [
+        {
+          "id": "f75ad846",
+          "name": "Todo"
+        },
+        {
+          "id": "47fc9ee4",
+          "name": "In Progress"
+        },
+        {
+          "id": "98236657",
+          "name": "Done"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhE",
+      "name": "Labels",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhI",
+      "name": "Linked pull requests",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhM",
+      "name": "Milestone",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhQ",
+      "name": "Repository",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhY",
+      "name": "Reviewers",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhc",
+      "name": "Parent issue",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhg",
+      "name": "Sub-issues progress",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhk",
+      "name": "Created",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRho",
+      "name": "Updated",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRhs",
+      "name": "Closed",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOAFupvs4BikupzhhcRhw",
+      "name": "Area",
+      "options": [
+        {
+          "id": "fb3b091a",
+          "name": "editor"
+        },
+        {
+          "id": "a580e887",
+          "name": "landing"
+        },
+        {
+          "id": "0be8c55c",
+          "name": "gallery"
+        },
+        {
+          "id": "9d5b153a",
+          "name": "social"
+        },
+        {
+          "id": "380a1fd9",
+          "name": "auth"
+        },
+        {
+          "id": "17a0f761",
+          "name": "api"
+        },
+        {
+          "id": "35598948",
+          "name": "data"
+        },
+        {
+          "id": "6db2fcbc",
+          "name": "ui"
+        },
+        {
+          "id": "c5ec9106",
+          "name": "theme"
+        },
+        {
+          "id": "c6957bd9",
+          "name": "i18n"
+        },
+        {
+          "id": "2d6dcc11",
+          "name": "seo"
+        },
+        {
+          "id": "e4a430ab",
+          "name": "analytics"
+        },
+        {
+          "id": "c1df8c45",
+          "name": "3d"
+        },
+        {
+          "id": "2c3d0b61",
+          "name": "infra"
+        },
+        {
+          "id": "8413ecd2",
+          "name": "docs"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOAFupvs4BikupzhhcRh0",
+      "name": "Priority",
+      "options": [
+        {
+          "id": "0a36567c",
+          "name": "P0"
+        },
+        {
+          "id": "bf3ecf46",
+          "name": "P1"
+        },
+        {
+          "id": "2d0606c9",
+          "name": "P2"
+        },
+        {
+          "id": "7853923c",
+          "name": "P3"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTSSF_lAHOAFupvs4BikupzhhcRh4",
+      "name": "Size",
+      "options": [
+        {
+          "id": "062d0d5f",
+          "name": "S"
+        },
+        {
+          "id": "f73bcded",
+          "name": "M"
+        },
+        {
+          "id": "6e3b25f1",
+          "name": "L"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    },
+    {
+      "id": "PVTF_lAHOAFupvs4BikupzhhcRh8",
+      "name": "Spec",
+      "type": "ProjectV2Field"
+    },
+    {
+      "id": "PVTSSF_lAHOAFupvs4BikupzhhcRiA",
+      "name": "Agent",
+      "options": [
+        {
+          "id": "6cf59055",
+          "name": "unassigned"
+        },
+        {
+          "id": "e7823e24",
+          "name": "human"
+        },
+        {
+          "id": "fecf7892",
+          "name": "claude"
+        }
+      ],
+      "type": "ProjectV2SingleSelectField"
+    }
+  ],
+  "projectId": "PVT_kwHOAFupvs4Bikup"
+}

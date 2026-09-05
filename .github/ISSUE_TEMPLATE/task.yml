@@ -1,0 +1,67 @@
+name: Task
+description: A unit of work that isn't yet covered by a spec in plans/
+labels: ["status/needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Planned work normally comes from a spec in `plans/` via `pnpm pm:sync`.
+        Use this form for work that has no spec yet — grooming may later fold it into one.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What needs doing? Name at least one concrete file or route.
+      placeholder: Add JSON-LD SoftwareApplication structured data to app/layout.tsx
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - editor
+        - landing
+        - gallery
+        - social
+        - auth
+        - api
+        - data
+        - ui
+        - theme
+        - i18n
+        - seo
+        - analytics
+        - 3d
+        - infra
+        - docs
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options: [feat, fix, chore, docs, refactor, perf, test]
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [p0 - drop everything, p1 - this cycle, p2 - next cycle, p3 - someday]
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ] 
+        - [ ] `pnpm typecheck` passes
+        - [ ] `messages/en.json` and `messages/es.json` both updated if UI strings changed
+  - type: input
+    id: spec
+    attributes:
+      label: Related spec (optional)
+      description: Slug of a file in plans/, if this belongs to one.
+      placeholder: socialization-platform

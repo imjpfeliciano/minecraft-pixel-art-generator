@@ -1,22 +1,35 @@
 ---
 name: Light/Dark Mode Support
+slug: theme
+kind: plan
+status: shipped
 overview: Add light/dark/system theme support with localStorage persistence. The app currently uses hardcoded dark Tailwind classes throughout; this plan replaces them with semantic tokens driven by a custom ThemeProvider that writes a `dark` class to `<html>`.
 todos:
   - id: css-tokens
     content: Expand globals.css with semantic CSS variables for :root (light) and .dark, remove hardcoded body background
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: theme-provider
     content: Create app/_components/ThemeProvider.tsx with context, localStorage read/write, OS media query listener, and dark class toggle on <html>
-    status: pending
+    status: completed
+    type: feat
+    priority: p0
   - id: theme-toggle
     content: Create app/_components/ThemeToggle.tsx with light/dark/system selector UI
-    status: pending
+    status: completed
+    type: feat
+    priority: p1
   - id: layout-wiring
-    content: "Update layout.tsx: add suppressHydrationWarning, anti-flash inline script in <head>, and wrap children with ThemeProvider"
-    status: pending
+    content: "Update layout.tsx: add suppressHydrationWarning and wrap children with ThemeProvider. Shipped WITHOUT the originally-planned anti-flash inline <script> — the server reads a theme-preference cookie and sets the class on <html> before paint instead. See AGENTS.md, which now forbids the inline-script hack."
+    status: completed
+    type: feat
+    priority: p0
   - id: refactor-components
     content: "Replace hardcoded dark Tailwind classes in page.tsx and all 7 _components/ with light/dark paired classes using dark: prefix"
-    status: pending
+    status: completed
+    type: refactor
+    priority: p1
 ---
 
 # Light/Dark Mode Support
