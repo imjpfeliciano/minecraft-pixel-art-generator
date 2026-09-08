@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
@@ -28,22 +28,36 @@ export default function OnboardingPage() {
   const t = useTranslations("Onboarding");
 
   const [nickname, setNickname] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [availability, setAvailability] = useState<AvailabilityState>("idle");
-  const [availabilityReason, setAvailabilityReason] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The display name is seeded from Clerk and only becomes state once the user
+  // edits it, so there is nothing to copy in on mount.
+  const [displayNameEdit, setDisplayNameEdit] = useState<string | null>(null);
+  const displayName = displayNameEdit ?? user?.fullName ?? user?.username ?? "";
 
-  // Seed initial values from the API + Clerk.
+  // Result of the last completed availability check, tagged with the value it
+  // was for. Everything the UI shows is derived from this plus `nickname`.
+  const [check, setCheck] = useState<{
+    value: string;
+    state: AvailabilityState;
+    reason: string | null;
+  } | null>(null);
+
+  const trimmedNickname = nickname.trim();
+  const availability: AvailabilityState =
+    trimmedNickname.length < 3
+      ? "idle"
+      : check?.value === trimmedNickname
+        ? check.state
+        : "checking";
+  const availabilityReason = check?.value === trimmedNickname ? check.reason : null;
+
+  // Redirect away if a nickname already exists, otherwise suggest one.
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    setDisplayName(user.fullName ?? user.username ?? "");
-
-    // If already has nickname, redirect away.
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((me) => {
@@ -60,40 +74,29 @@ export default function OnboardingPage() {
       .catch(() => {});
   }, [isLoaded, user, router]);
 
-  // Debounced availability check whenever nickname changes.
+  // Debounced availability check. Nothing is set synchronously here — "idle" and
+  // "checking" both fall out of the derivation above.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
     const trimmed = nickname.trim();
-    if (trimmed.length < 3) {
-      setAvailability("idle");
-      setAvailabilityReason(null);
-      return;
-    }
+    if (trimmed.length < 3) return;
 
-    setAvailability("checking");
-    debounceRef.current = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/me/nickname-available?value=${encodeURIComponent(trimmed)}`);
         const data = await res.json();
         if (!data.available && data.reason) {
-          setAvailability("invalid");
-          setAvailabilityReason(data.reason);
+          setCheck({ value: trimmed, state: "invalid", reason: data.reason });
         } else if (data.available) {
-          setAvailability("available");
-          setAvailabilityReason(null);
+          setCheck({ value: trimmed, state: "available", reason: null });
         } else {
-          setAvailability("taken");
-          setAvailabilityReason(null);
+          setCheck({ value: trimmed, state: "taken", reason: null });
         }
       } catch {
-        setAvailability("idle");
+        setCheck({ value: trimmed, state: "idle", reason: null });
       }
     }, 400);
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => clearTimeout(timer);
   }, [nickname]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -222,7 +225,7 @@ export default function OnboardingPage() {
               id="displayName"
               type="text"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={(e) => setDisplayNameEdit(e.target.value)}
               maxLength={60}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-grass focus:outline-none focus:ring-2 focus:ring-grass/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />

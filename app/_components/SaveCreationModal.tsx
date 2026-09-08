@@ -87,26 +87,31 @@ export default function SaveCreationModal({
     if (open && isSignedIn === false) trackCreationSignInPrompted();
   }, [open, isSignedIn]);
 
-  // Re-initialise form whenever the modal opens
   useEffect(() => {
-    if (!open) return;
-    trackCreationSaveOpened(isEditMode ? "edit" : "create");
-    if (existingCreation) {
-      setTitle(existingCreation.title);
-      setDescription(existingCreation.description ?? "");
-      setSelectedTags(existingCreation.tags ?? []);
-      setVisibility(existingCreation.visibility);
-    } else {
-      setTitle(config?.schematicName ?? "PixelArt");
-      setDescription("");
-      setSelectedTags([]);
-      setVisibility(initialVisibility);
+    if (open) trackCreationSaveOpened(isEditMode ? "edit" : "create");
+  }, [open, isEditMode]);
+
+  // Re-initialise the form on the closed -> open edge.
+  //
+  // This is React's "adjusting state when a prop changes" pattern: setting state
+  // *during render* re-runs this component before anything is committed, and no
+  // child re-renders. The usual alternative — a `key` that remounts the form —
+  // is wrong here because base-ui keeps the popup's children mounted through its
+  // exit animation, so remounting would blank the dialog mid-fade.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setTitle(existingCreation ? existingCreation.title : config?.schematicName ?? "PixelArt");
+      setDescription(existingCreation?.description ?? "");
+      setSelectedTags(existingCreation?.tags ?? []);
+      setVisibility(existingCreation ? existingCreation.visibility : initialVisibility);
+      setError(null);
+      setSavedId(null);
+      setNeedsNickname(false);
+      setIsSubmitting(false);
     }
-    setError(null);
-    setSavedId(null);
-    setNeedsNickname(false);
-    setIsSubmitting(false);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   function toggleTag(slug: string) {
     setSelectedTags((prev) => {
