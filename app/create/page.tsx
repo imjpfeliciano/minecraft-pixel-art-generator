@@ -172,10 +172,22 @@ function CreatePageInner() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   // When set, the editor was opened from the dashboard ("re-open in editor")
   const [loadedCreation, setLoadedCreation] = useState<CreationJson | null>(null);
-  const [isLoadingCreation, setIsLoadingCreation] = useState(false);
+  // Which ?creation= id the hydration effect has finished with (either way).
+  // The loading banner is derived from this rather than kept as its own flag,
+  // which is what let the effect set state synchronously on every run.
+  const [hydratedCreationId, setHydratedCreationId] = useState<string | null>(null);
+  const requestedCreationId = searchParams.get("creation");
+  const isLoadingCreation =
+    requestedCreationId !== null && hydratedCreationId !== requestedCreationId;
   // Pending image when user tries to load a new image while in edit mode
   const [pendingImage, setPendingImage] = useState<{ file: File; url: string } | null>(null);
   const [restoredGuestDraft, setRestoredGuestDraft] = useState(false);
+
+  // Undo stack for block edits
+  const [undoStack, setUndoStack] = useState<
+    Array<{ grid: MinecraftBlock[][]; litematic: Uint8Array | null }>
+  >([]);
+  const MAX_UNDO = 20;
 
   const persistGuestDraft = useCallback(() => {
     if (blockGrid.length === 0) return;
@@ -206,7 +218,6 @@ function CreatePageInner() {
   useEffect(() => {
     const creationId = searchParams.get("creation");
     if (!creationId) return;
-    setIsLoadingCreation(true);
 
     Promise.all([
       fetch(`/api/creations/${creationId}`).then((r) => r.json() as Promise<CreationJson>),
@@ -239,7 +250,7 @@ function CreatePageInner() {
         setUndoStack([]);
       })
       .catch(() => setError(t("loadCreationError")))
-      .finally(() => setIsLoadingCreation(false));
+      .finally(() => setHydratedCreationId(creationId));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -278,16 +289,13 @@ function CreatePageInner() {
     };
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!restoredGuestDraft || !isAuthLoaded || !isSignedIn) return;
+  // A restored guest draft reopens the save modal once Clerk resolves. Handled on
+  // the transition during render rather than in an effect; consuming the flag as
+  // we go means it fires exactly once and cannot reopen a modal the user closed.
+  if (restoredGuestDraft && isAuthLoaded && isSignedIn) {
+    setRestoredGuestDraft(false);
     setShowSaveModal(true);
-  }, [restoredGuestDraft, isAuthLoaded, isSignedIn]);
-
-  // Undo stack for block edits
-  const [undoStack, setUndoStack] = useState<
-    Array<{ grid: MinecraftBlock[][]; litematic: Uint8Array | null }>
-  >([]);
-  const MAX_UNDO = 20;
+  }
 
   // Revoke the final blob URL when the page unmounts (empty deps = runs once).
   useEffect(() => {

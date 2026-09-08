@@ -285,6 +285,43 @@ test.describe("?creation= deep link", () => {
     expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
   });
 
+  test("shows the loading banner while hydrating, and clears it when done", async ({ page }) => {
+    await page.route(`**/api/creations/${CREATION_ID}`, async (route) => {
+      await new Promise((r) => setTimeout(r, 1500));
+      await route.fulfill({ json: CREATION });
+    });
+    await page.route(`**/api/creations/${CREATION_ID}/grid`, (route) =>
+      route.fulfill({
+        contentType: "application/gzip",
+        body: readFileSync(join(FIXTURES, "grid.json.gz")),
+      }),
+    );
+
+    await page.goto(`/create?creation=${CREATION_ID}`);
+    await expect(page.getByText("Loading creation…")).toBeVisible();
+    await expect(page.getByTestId("pixel-art-canvas")).toBeVisible();
+    await expect(page.getByText("Loading creation…")).toHaveCount(0);
+  });
+
+  test("clears the loading banner even when hydration fails", async ({ page }) => {
+    await page.route(`**/api/creations/${CREATION_ID}**`, async (route) => {
+      await new Promise((r) => setTimeout(r, 800));
+      await route.fulfill({ status: 500, json: { error: "boom" } });
+    });
+
+    await page.goto(`/create?creation=${CREATION_ID}`);
+    await expect(page.getByText("Loading creation…")).toBeVisible();
+    await expect(
+      page.getByText("Failed to load the creation. Please try again."),
+    ).toBeVisible();
+    await expect(page.getByText("Loading creation…")).toHaveCount(0);
+  });
+
+  test("shows no loading banner without a ?creation param", async ({ page }) => {
+    await page.goto("/create");
+    await expect(page.getByText("Loading creation…")).toHaveCount(0);
+  });
+
   test("surfaces an error instead of hanging when the creation cannot be loaded", async ({
     page,
   }) => {
