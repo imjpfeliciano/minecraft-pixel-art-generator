@@ -4,7 +4,6 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, withApi, ApiError } from "@/app/_lib/server/auth";
-import { resolveUser } from "@/app/_lib/server/identity";
 import {
   validateTitle,
   validateDescription,

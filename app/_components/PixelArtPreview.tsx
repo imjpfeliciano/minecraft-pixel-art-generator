@@ -115,13 +115,20 @@ export default function PixelArtPreview({
   const isSelDragging = useRef(false);
   const dragStart = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 });
 
+  // Mirrors of the current zoom/pan, read by the wheel and zoom handlers so they
+  // can keep a stable identity — the native `wheel` listener has to be attached
+  // once with { passive: false }. Written on commit, not during render: mutating
+  // a ref while rendering is unsafe under concurrent rendering.
   const cellSizeRef = useRef(cellSize);
   const offsetRef = useRef(offset);
-  cellSizeRef.current = cellSize;
-  offsetRef.current = offset;
+  useEffect(() => {
+    cellSizeRef.current = cellSize;
+    offsetRef.current = offset;
+  }, [cellSize, offset]);
 
-  const wheelHandlerRef = useRef<(e: WheelEvent) => void>(() => {});
-  wheelHandlerRef.current = (e: WheelEvent) => {
+  // Reads only refs and stable setters, so it never needs to be re-created —
+  // which is why the indirection through a handler ref is no longer needed.
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const vp = viewportRef.current;
     if (!vp) return;
@@ -139,16 +146,14 @@ export default function PixelArtPreview({
       x: mx - (mx - o.x) * scale,
       y: my - (my - o.y) * scale,
     });
-  };
+  }, []);
 
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
-    const proxy = (e: WheelEvent) => wheelHandlerRef.current(e);
-    vp.addEventListener("wheel", proxy, { passive: false });
-    return () => vp.removeEventListener("wheel", proxy);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    vp.addEventListener("wheel", handleWheel, { passive: false });
+    return () => vp.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
 
   const rows = blockGrid.length;
   const cols = blockGrid[0]?.length ?? 0;
@@ -221,10 +226,9 @@ export default function PixelArtPreview({
     }
 
     const unique = [...new Set(needed)];
-    if (unique.length === 0) {
-      setTexturesVersion((v) => v + 1);
-      return;
-    }
+    // Nothing to load. The draw effect already re-runs on `blockGrid`, so
+    // bumping the version here only bought a redundant render and redraw.
+    if (unique.length === 0) return;
 
     let loaded = 0;
     for (const tex of unique) {
@@ -240,7 +244,6 @@ export default function PixelArtPreview({
       };
       img.src = `/blocks/${tex}.png`;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockGrid]);
 
   useEffect(() => {
@@ -256,7 +259,6 @@ export default function PixelArtPreview({
       drawOriginalCanvas(canvas, img, cols * cellSize, rows * cellSize);
     };
     img.src = originalImageUrl;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [originalImageUrl, cellSize, rows, cols]);
 
   useEffect(() => {
@@ -297,7 +299,6 @@ export default function PixelArtPreview({
       gridColor,
       textureCacheRef.current,
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockGrid, cellSize, rows, cols, showGrid, gridColor, texturesVersion]);
 
   const handleMouseDown = useCallback(
@@ -419,7 +420,6 @@ export default function PixelArtPreview({
       x: cx - (cx - o.x) * scale,
       y: cy - (cy - o.y) * scale,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const viewportCursor =

@@ -164,8 +164,7 @@ function InstanceGroup({
     });
     instance.instanceMatrix.needsUpdate = true;
     return { mesh: instance, geo: geometry, mat: material };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [r, g, b, positions, texture]);
+  }, [r, g, b, positions]);
 
   // Load the block texture and apply it to the material
   useEffect(() => {
@@ -182,8 +181,8 @@ function InstanceGroup({
         mat.needsUpdate = true;
       },
     );
-  // mat identity is tied to the useMemo above; texture changes force a new mat via the memo key
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // `texture` is invariant here — groupKey is the texture and is used as the
+  // React key, so a texture change remounts rather than updates this component.
   }, [mat, texture]);
 
   // Dispose Three.js objects when they are replaced or the component unmounts
@@ -290,11 +289,15 @@ export default function SchematicViewer3D({
   const [activeLayer, setActiveLayer] = useState(1);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
-  // Reset to defaults when the total layer count changes.
-  useEffect(() => {
+  // Reset to defaults when the total layer count changes. Adjusted during
+  // render rather than in an effect, so it never costs a committed extra pass —
+  // and unlike the effect, it no longer fires a redundant reset on mount.
+  const [layerCount, setLayerCount] = useState(totalLayers);
+  if (totalLayers !== layerCount) {
+    setLayerCount(totalLayers);
     setLayerMode("all");
     setActiveLayer(1);
-  }, [totalLayers]);
+  }
 
   const prevLayer = () => {
     track("3D Layer Navigated", { direction: "prev" });

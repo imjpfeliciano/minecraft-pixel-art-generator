@@ -16,13 +16,11 @@ import {
 interface GalleryContentProps {
   initialCreations: CreationJson[];
   initialNextCursor: string | null;
-  initialTag: string | null;
 }
 
 export default function GalleryContent({
   initialCreations,
   initialNextCursor,
-  initialTag,
 }: GalleryContentProps) {
   const t = useTranslations("Gallery");
   const router = useRouter();
@@ -62,9 +60,6 @@ export default function GalleryContent({
       setIsLoading(false);
     }
   }, [nextCursor, isLoading, activeTag, creations.length]);
-
-  // Reset state when the tag param changes (server re-renders with new initialCreations)
-  // Using initialTag prop change detection via a key on the parent handles this.
 
   return (
     <>

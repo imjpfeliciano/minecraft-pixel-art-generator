@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Timestamp } from "firebase-admin/firestore";
 import NavBar from "../_components/NavBar";
 import Footer from "../_components/landing/Footer";
 import GalleryContent from "./GalleryContent";
@@ -79,7 +78,6 @@ export default async function GalleryPage({ searchParams }: GalleryPageProps) {
             key={activeTag ?? "__all__"}
             initialCreations={creations}
             initialNextCursor={nextCursor}
-            initialTag={activeTag}
           />
         </Suspense>
       </main>

@@ -14,7 +14,6 @@ import {
   type Orientation,
   type CreationFoundation,
 } from "@/app/_lib/creation";
-import { nanoid } from "nanoid";
 
 // ── Shared error wrapper ───────────────────────────────────────────────────────
 

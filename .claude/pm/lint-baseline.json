@@ -1,57 +1,13 @@
 {
-  "recordedAt": "2026-09-05T22:05:15.401Z",
+  "recordedAt": "2026-09-08T18:40:52.577Z",
   "totals": {
-    "errors": 17,
-    "warnings": 14
+    "errors": 7,
+    "warnings": 0
   },
   "files": {
-    "app/(authenticated)/onboarding/page.tsx": {
-      "errors": 2,
-      "warnings": 0
-    },
-    "app/_components/PixelArtPreview.tsx": {
-      "errors": 4,
-      "warnings": 5
-    },
-    "app/_components/SaveCreationModal.tsx": {
-      "errors": 1,
-      "warnings": 0
-    },
-    "app/_components/SchematicViewer3D.tsx": {
-      "errors": 1,
-      "warnings": 1
-    },
-    "app/_components/ThemeProvider.tsx": {
-      "errors": 1,
-      "warnings": 0
-    },
-    "app/_components/landing/HeroComparison.tsx": {
-      "errors": 1,
-      "warnings": 2
-    },
-    "app/api/creations/[id]/route.ts": {
-      "errors": 0,
-      "warnings": 1
-    },
-    "app/api/creations/route.ts": {
-      "errors": 0,
-      "warnings": 1
-    },
     "app/create/page.tsx": {
       "errors": 7,
       "warnings": 0
-    },
-    "app/creations/[id]/CreationPreviewPanel.tsx": {
-      "errors": 0,
-      "warnings": 2
-    },
-    "app/gallery/GalleryContent.tsx": {
-      "errors": 0,
-      "warnings": 1
-    },
-    "app/gallery/page.tsx": {
-      "errors": 0,
-      "warnings": 1
     }
   }
 }
