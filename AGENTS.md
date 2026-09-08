@@ -259,6 +259,8 @@ pnpm check:lint            # lint ratchet — must not regress
 |---|---|
 | `pnpm test` | Vitest, run-once. Unit tests for the pure libraries. Part of the gate list above. |
 | `pnpm test:watch` | Same suite in watch mode, for while you work. |
+| `pnpm test:e2e` | Playwright. The create flow in a real browser. **Not** in the gate list — see below. |
+| `pnpm test:e2e:ui` | The same specs in Playwright's UI mode, for debugging one of them. |
 
 Unit tests are **co-located** with the module they cover (`app/_lib/nbt.test.ts` next to
 `app/_lib/nbt.ts`) and picked up by `app/**/*.test.ts`. `_lib` is a private App Router
@@ -295,6 +297,59 @@ Two things to know before adding to these:
 - **Do not verify an encoder with a decoder that mirrors it.** A reader written from the
   same mental model as the writer agrees with the writer's bugs. Either hand-compute the
   expected bytes or parse with a third-party implementation.
+
+#### E2E (`e2e/`)
+
+`pnpm test:e2e` covers the create flow end to end: upload → configure → generate →
+undo → download, plus `?creation=` hydration, the 3D viewer mount, and light/dark
+layout at 1280px. First run needs the browser binary:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+**`pnpm test:e2e` requires a populated `.env.local`, so it is deliberately *not* in
+the gate list.** `proxy.ts` runs `clerkMiddleware()` and the root layout mounts
+`<ClerkProvider>`, so the app will not boot without Clerk keys even though `/create`
+is public. `pnpm test` does run from a clean checkout; `pnpm test:e2e` does not. When
+CI arrives it will need the Clerk keys as repo secrets.
+
+Tests run against `pnpm build && pnpm start`, not `next dev`. Dev-mode React Strict
+Mode double-invokes effects, which makes the hydration test (it races two fetches)
+flakier than it needs to be. Chromium only — none of the assertions are
+cross-browser claims.
+
+Conventions:
+
+- **Selectors:** accessible roles and labels wherever the markup offers them;
+  `data-testid` only for containers with no semantic identity (`pixel-art-canvas`,
+  `preview-panel`, `materials-panel`, `action-bar`, `viewer-3d`). If a control has no
+  accessible name, the fix is an `aria-label` — that is a real defect, not a test
+  inconvenience — which also means a translated key in **both** locales.
+- **English copy is deterministic.** `DEFAULT_LOCALE` is `"en"` and the locale is read
+  only from `localStorage`, so a fresh browser context is always English.
+- **Nothing touches Firebase.** The `?creation=` endpoints read Firestore and Storage
+  server-side, so both are stubbed with `page.route()` against committed fixtures.
+- **Fixtures are committed, not generated at run time.** `scripts/make-e2e-fixtures.mjs`
+  regenerates `e2e/fixtures/`; the suite must not depend on the very code it tests.
+  `quadrants.png` is 16×16 with four solid quadrants, so generating at 2×2 produces a
+  known set of blocks rather than an approximate one.
+- **Undo is driven through the materials panel's Replace flow**, not by painting on the
+  canvas. Both push the same undo stack, but canvas painting needs synthesised
+  coordinates that a refactor of `PixelArtPreview` would invalidate.
+- **No screenshot baselines.** Pixel baselines are OS- and font-renderer-specific, so
+  ones generated on macOS would fail the moment CI runs on Linux. The theme test asserts
+  the `dark` class, panel visibility, and that the body does not overflow horizontally.
+  Real visual regression deserves its own issue and a decision about where baselines
+  are generated.
+
+Two behaviours worth knowing before writing more:
+
+- **There is no redo.** Only `handleUndo`, and its `Ctrl+Z` listener explicitly excludes
+  `Shift`. Do not write a redo test expecting it to pass.
+- **`Page.errorNoBlocks` is unreachable from the UI.** `handleCategoryToggle` returns
+  early rather than emptying the category set, so "No blocks available" never fires.
+  The spec asserts that guard instead.
 
 ### Plan → review → implement
 

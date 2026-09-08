@@ -595,6 +595,7 @@ export default function PixelArtPreview({
           )}
 
           <canvas
+            data-testid="pixel-art-canvas"
             ref={canvasRef}
             style={{
               imageRendering: "pixelated",

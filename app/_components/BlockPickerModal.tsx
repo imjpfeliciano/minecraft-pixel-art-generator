@@ -97,11 +97,14 @@ export default function BlockPickerModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="block-picker-title"
         className="flex flex-col w-[80vw] max-w-[80vw] max-h-[80vh] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+          <h3 id="block-picker-title" className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
             {title ?? t("defaultTitle")}
           </h3>
           <button

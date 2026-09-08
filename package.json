@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "pm:spec": "node scripts/pm/spec.mjs",
     "pm:sync": "node scripts/pm/sync.mjs",
     "pm:snapshot": "node scripts/pm/snapshot.mjs",
@@ -47,6 +49,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
