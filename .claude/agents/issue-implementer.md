@@ -66,19 +66,15 @@ These are the specific ways changes break in this codebase. Verify each that app
 ```bash
 nvm use
 pnpm typecheck      # tsc --noEmit — must be zero errors
+pnpm test           # vitest run — unit tests for the pure libraries
 pnpm check:i18n     # en/es key parity + untranslated-placeholder detection
-pnpm check:lint     # lint ratchet — must not regress
+pnpm check:lint     # eslint — zero errors, zero warnings
 ```
 
-**On `check:lint`:** `main` currently carries 17 pre-existing eslint errors, mostly React
-Compiler diagnostics. `pnpm lint` is therefore red on a clean checkout and is **not** a
-usable gate. `pnpm check:lint` compares per-file error counts against
-`.claude/pm/lint-baseline.json` and fails only if your change makes a file worse.
-
-- Do **not** try to fix the pre-existing 17. That is separate work deserving its own issue,
-  and folding it into an unrelated PR makes the diff unreviewable.
-- Do **not** run `check:lint --update` to make a failure go away. Re-baselining is a
-  deliberate act after genuinely reducing errors, never a way past a red gate.
+**On `check:lint`:** it is an alias for `pnpm lint` (`eslint --max-warnings 0`).
+`main` is green as of #23, so any error or warning you introduce is yours and must be
+fixed rather than suppressed. There is no longer a baseline to re-record, and adding an
+`eslint-disable` to get past the gate is not an acceptable fix.
 
 If you touched UI, also confirm both light and dark render sensibly, and that the change
 holds at ≥1280px (the landing page is a desktop-only target).

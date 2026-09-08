@@ -246,12 +246,12 @@ Every change — human or agent — must pass all four before commit:
 pnpm typecheck             # tsc --noEmit — must be zero
 pnpm test                  # vitest run — unit tests for the pure libraries
 pnpm check:i18n            # en/es key parity + untranslated-placeholder detection
-pnpm check:lint            # lint ratchet — must not regress
+pnpm check:lint            # eslint — zero errors, zero warnings (alias for `pnpm lint`)
 ```
 
 `check:i18n` enforces the translation rules above mechanically. Values legitimately identical in both locales are allowlisted in `scripts/pm/check-i18n.mjs` — add to that list with a justification rather than letting the warning become background noise.
 
-`check:lint` exists because **`pnpm lint` is currently red on `main`** — 17 pre-existing eslint errors, mostly React Compiler diagnostics. A zero-error gate would block every change or invite unrelated cleanup, so the ratchet compares per-file error counts against `.claude/pm/lint-baseline.json` and fails only on regressions. Clearing the backlog is its own piece of work; `check:lint --update` is a deliberate re-baseline after genuinely improving things, never a way past a red gate.
+`check:lint` is now just an alias for `pnpm lint` (`eslint --max-warnings 0`). It used to be a per-file ratchet against `.claude/pm/lint-baseline.json`, because `main` carried 17 pre-existing eslint errors and a zero-error gate would have blocked every change. That backlog was cleared in #23, so the ratchet, its baseline and `scripts/pm/check-lint.mjs` are gone — a green tree needs a plain gate, not a high-water mark. **Warnings fail the gate too**, deliberately: the backlog started as warnings nobody had to look at.
 
 ### Tests
 
