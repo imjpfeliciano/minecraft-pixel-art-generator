@@ -330,7 +330,7 @@ export default function SchematicViewer3D({
   const canvasKey = `${cols}x${rows}x${orientation}`;
 
   return (
-    <div className="relative w-full h-full bg-[#CAE2F7] rounded-lg overflow-hidden">
+    <div data-testid="viewer-3d" className="relative w-full h-full bg-[#CAE2F7] rounded-lg overflow-hidden">
       {/* 3D canvas */}
       <Canvas
         key={canvasKey}

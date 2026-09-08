@@ -602,6 +602,7 @@ function CreatePageInner() {
             </h2>
             <input
               type="text"
+              aria-label={t("schematicNameLabel")}
               value={schematicName}
               onChange={(e) => setSchematicName(e.target.value || "PixelArt")}
               placeholder="PixelArt"
@@ -635,6 +636,7 @@ function CreatePageInner() {
               {t("sectionBackground")}
             </h2>
             <select
+              aria-label={t("backgroundFillLabel")}
               value={fillBlockId}
               onChange={(e) => setFillBlockId(e.target.value)}
               className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
@@ -677,6 +679,7 @@ function CreatePageInner() {
               </label>
               {foundationEnabled && (
                 <select
+                  aria-label={t("foundationBlockLabel")}
                   value={foundationBlockId}
                   onChange={(e) => setFoundationBlockId(e.target.value)}
                   className="mt-3 w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100 focus:border-green-500 focus:outline-none"
@@ -796,7 +799,7 @@ function CreatePageInner() {
                   </div>
 
                   {/* Panel body */}
-                  <div className="flex-1 overflow-hidden p-4 min-h-0">
+                  <div data-testid="preview-panel" className="flex-1 overflow-hidden p-4 min-h-0">
                     {previewMode === "3d" && blockGrid.length > 0 ? (
                       <SchematicViewer3D
                         blockGrid={blockGrid}
@@ -824,7 +827,7 @@ function CreatePageInner() {
 
                 {/* Material list side panel */}
                 {showMaterialList && blockGrid.length > 0 && (
-                  <div className="w-72 flex-shrink-0 flex flex-col border-l border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
+                  <div data-testid="materials-panel" className="w-72 flex-shrink-0 flex flex-col border-l border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
                     {/* Side panel header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex-shrink-0">
                       <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400">
@@ -854,7 +857,7 @@ function CreatePageInner() {
 
               {/* ── Action bar ───────────────────────────────────────────────── */}
               {blockGrid.length > 0 && (
-                <div className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3 flex-wrap">
+                <div data-testid="action-bar" className="flex-shrink-0 border-t border-gray-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-3 flex-wrap">
                   <button
                     onClick={handleDownload}
                     className="flex items-center gap-2 rounded-xl bg-grass px-5 py-3 text-sm font-semibold text-white hover:bg-grass-hover active:scale-95 transition-all"
