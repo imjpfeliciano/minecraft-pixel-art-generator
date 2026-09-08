@@ -240,10 +240,11 @@ pnpm pm:snapshot           # JSON view of project state
 
 ### Verification gates
 
-Every change — human or agent — must pass all three before commit:
+Every change — human or agent — must pass all four before commit:
 
 ```bash
 pnpm typecheck             # tsc --noEmit — must be zero
+pnpm test                  # vitest run — unit tests for the pure libraries
 pnpm check:i18n            # en/es key parity + untranslated-placeholder detection
 pnpm check:lint            # lint ratchet — must not regress
 ```
@@ -251,6 +252,49 @@ pnpm check:lint            # lint ratchet — must not regress
 `check:i18n` enforces the translation rules above mechanically. Values legitimately identical in both locales are allowlisted in `scripts/pm/check-i18n.mjs` — add to that list with a justification rather than letting the warning become background noise.
 
 `check:lint` exists because **`pnpm lint` is currently red on `main`** — 17 pre-existing eslint errors, mostly React Compiler diagnostics. A zero-error gate would block every change or invite unrelated cleanup, so the ratchet compares per-file error counts against `.claude/pm/lint-baseline.json` and fails only on regressions. Clearing the backlog is its own piece of work; `check:lint --update` is a deliberate re-baseline after genuinely improving things, never a way past a red gate.
+
+### Tests
+
+| Command | Scope |
+|---|---|
+| `pnpm test` | Vitest, run-once. Unit tests for the pure libraries. Part of the gate list above. |
+| `pnpm test:watch` | Same suite in watch mode, for while you work. |
+
+Unit tests are **co-located** with the module they cover (`app/_lib/nbt.test.ts` next to
+`app/_lib/nbt.ts`) and picked up by `app/**/*.test.ts`. `_lib` is a private App Router
+folder, so nothing there is routable.
+
+Vitest runs in the **node** environment with no plugins — no jsdom, no React Testing
+Library, no `@vitejs/plugin-react`. That is deliberate: the unit scope is pure functions
+only. Anything that needs a real canvas, `OffscreenCanvas`, three.js, or a blob download
+belongs in an E2E test against a real browser, because mocking that surface in jsdom means
+testing the mocks.
+
+`globals` is off — import `{ describe, it, expect }` from `vitest` explicitly. This keeps
+`tsconfig.json` untouched, which matters because its `include` is repo-wide.
+
+What is covered today:
+
+- **`creation-grid.ts`** — `encodeGrid`/`decodeGrid` round-trip, palette dedup, row-major
+  indexing, unknown-block fallback.
+- **`color-matcher.ts`** — sRGB→CIELAB conversion, nearest-block matching, and that a
+  restricted palette is actually respected rather than falling back to the global best.
+- **`nbt.ts`** — byte-level encoder contract: big-endian integers, UTF-8 string length
+  prefixes, `TAG_End` as the element type of an empty list, compound nesting.
+- **`litematic-generator.ts`** — the shipped file format. Output is parsed back with
+  **`prismarine-nbt`**, an independent NBT implementation, rather than a hand-rolled
+  decoder that would share `nbt.ts`'s assumptions and pass on a malformed file. Covers
+  both orientations, the vertical Y-inversion, foundation layers, and the spanning
+  `LitematicaBitArray` packing against hand-computed values.
+
+Two things to know before adding to these:
+
+- **`generateLitematic` is not byte-deterministic** — it stamps `Date.now()` into
+  `Metadata.TimeCreated`/`TimeModified`. Never snapshot the gzip output; assert
+  structurally, or pin the clock with `vi.setSystemTime()`.
+- **Do not verify an encoder with a decoder that mirrors it.** A reader written from the
+  same mental model as the writer agrees with the writer's bugs. Either hand-compute the
+  expected bytes or parse with a third-party implementation.
 
 ### Plan → review → implement
 
