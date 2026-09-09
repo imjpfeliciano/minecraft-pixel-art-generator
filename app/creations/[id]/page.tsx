@@ -7,7 +7,8 @@ import CreationPreviewPanel from "./CreationPreviewPanel";
 import CreationMetaPanel from "./CreationMetaPanel";
 import { getDb } from "../../_lib/server/firebase-admin";
 import { resolveUser } from "../../_lib/server/identity";
-import { toCreationJson, type Creation } from "../../_lib/creation";
+import { type Creation } from "../../_lib/creation";
+import { hydrateCreations } from "../../_lib/server/author-nicknames";
 import { AVAILABLE_TAGS } from "../../_lib/tags";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
@@ -20,7 +21,10 @@ async function getCreation(id: string) {
   const db = getDb();
   const doc = await db.collection("creations").doc(id).get();
   if (!doc.exists) return null;
-  return toCreationJson({ id: doc.id, ...doc.data() } as Creation);
+  const [creation] = await hydrateCreations([
+    { id: doc.id, ...doc.data() } as Creation,
+  ]);
+  return creation;
 }
 
 export async function generateMetadata({ params }: CreationDetailProps): Promise<Metadata> {

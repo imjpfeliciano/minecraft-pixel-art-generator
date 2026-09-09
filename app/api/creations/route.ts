@@ -4,6 +4,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, withApi, ApiError } from "@/app/_lib/server/auth";
+import { hydrateCreations } from "@/app/_lib/server/author-nicknames";
 import {
   validateTitle,
   validateDescription,
@@ -45,7 +46,7 @@ export const GET = withApi(async (req: Request) => {
 
     // Sort client-side to avoid requiring a composite index
     const creations = snap.docs
-      .map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation))
+      .map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation, user.nickname))
       .sort(
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
@@ -90,8 +91,8 @@ export const GET = withApi(async (req: Request) => {
 
   const hasMore = snap.docs.length > limit;
   const resultDocs = hasMore ? snap.docs.slice(0, limit) : snap.docs;
-  const creations = resultDocs.map((d) =>
-    toCreationJson({ id: d.id, ...d.data() } as Creation),
+  const creations = await hydrateCreations(
+    resultDocs.map((d) => ({ id: d.id, ...d.data() }) as Creation),
   );
   const nextCursor = hasMore ? creations[creations.length - 1].publishedAt : null;
 
@@ -186,7 +187,6 @@ export const POST = withApi(async (req: Request) => {
   const creation: Creation = {
     id: creationId,
     authorId: user.userId,
-    authorNickname: user.nickname,
     title,
     titleLowercase: title.toLowerCase(),
     description,

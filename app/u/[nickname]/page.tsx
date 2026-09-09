@@ -37,7 +37,9 @@ async function getProfileData(nickname: string) {
       .get();
 
     creations = snap.docs
-      .map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation))
+      // Every creation on this page belongs to the profile being viewed,
+      // whose current nickname is already in hand.
+      .map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation, user.nickname))
       .sort((a, b) => {
         const aTime = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
         const bTime = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;

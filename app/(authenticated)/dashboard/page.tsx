@@ -25,7 +25,9 @@ export default async function DashboardPage() {
   const creations = snap.docs
     .map((d) => {
       const data = { id: d.id, ...d.data() } as Creation;
-      return toCreationJson(data);
+      // The dashboard redirects to /onboarding above when nickname is null,
+      // and every creation here is the caller's own — no lookup needed.
+      return toCreationJson(data, user.nickname);
     })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 

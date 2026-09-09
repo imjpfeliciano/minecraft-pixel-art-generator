@@ -80,7 +80,6 @@ export interface CreationConfig {
 export interface Creation {
   id: string;
   authorId: string;
-  authorNickname: string | null;
   title: string;
   titleLowercase: string;
   description: string;
@@ -127,11 +126,22 @@ export interface CreationJson {
   updatedAt: string;
 }
 
-export function toCreationJson(c: Creation): CreationJson {
+/**
+ * Serialises a creation for the wire.
+ *
+ * `authorNickname` is a required argument rather than a field on `Creation`
+ * because it lives on `/users/{authorId}`, not on the creation document — see
+ * `resolveAuthorNicknames`. Passing it in means a new read site cannot forget
+ * to resolve it; it fails to compile instead.
+ */
+export function toCreationJson(
+  c: Creation,
+  authorNickname: string | null,
+): CreationJson {
   return {
     id: c.id,
     authorId: c.authorId,
-    authorNickname: c.authorNickname,
+    authorNickname,
     title: c.title,
     description: c.description,
     tags: c.tags,

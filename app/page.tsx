@@ -5,7 +5,8 @@ import CatalogueSection from "./_components/landing/CatalogueSection";
 import TagsSection from "./_components/landing/TagsSection";
 import Footer from "./_components/landing/Footer";
 import { getDb } from "./_lib/server/firebase-admin";
-import { toCreationJson, type Creation } from "./_lib/creation";
+import { type Creation } from "./_lib/creation";
+import { hydrateCreations } from "./_lib/server/author-nicknames";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
 
@@ -30,7 +31,11 @@ async function fetchRecentPublicCreations() {
       .orderBy("publishedAt", "desc")
       .limit(6)
       .get();
-    return snap.docs.map((d) => toCreationJson({ id: d.id, ...d.data() } as Creation));
+    // Awaited inside the try: returning the promise unawaited would let a
+    // lookup failure escape the catch below and take the landing page with it.
+    return await hydrateCreations(
+      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Creation),
+    );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "";
     if (!msg.includes("index") && !msg.includes("FAILED_PRECONDITION")) {
