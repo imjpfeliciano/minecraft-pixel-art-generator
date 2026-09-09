@@ -356,6 +356,82 @@ test.describe("3D viewer", () => {
   });
 });
 
+test.describe("header navigation", () => {
+  /**
+   * A fresh context has no Clerk session, so this is the signed-out header. The
+   * signed-in half (`/dashboard`, `UserMenu`) and the sign-in round trip itself
+   * need an authenticated session, which the suite cannot fake yet.
+   *
+   * `/` and `/gallery` both read Firestore server-side, so any link that is
+   * actually followed here is stubbed — these are specs about `/create`'s chrome.
+   */
+  test("a signed-out visitor is offered home, the gallery and sign-in", async ({ page }) => {
+    await page.goto("/create");
+    const header = page.getByRole("banner");
+
+    await expect(header.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    await expect(header.getByRole("link", { name: "Gallery" })).toHaveAttribute(
+      "href",
+      "/gallery",
+    );
+    // Clerk's <SignInButton> wraps a button, not a link.
+    await expect(header.getByRole("button", { name: "Sign in" })).toBeVisible();
+
+    // /dashboard stays gated on the session.
+    await expect(header.getByRole("link", { name: "My Creations" })).toHaveCount(0);
+
+    // The page heading is not buried inside the logo anchor.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("mc-pixel app");
+  });
+
+  test("header links navigate freely while the editor is empty", async ({ page }) => {
+    // The gallery page itself reads Firestore server-side; stub it so this stays
+    // a test of the leave-guard's early return and nothing else.
+    await page.route("**/gallery**", (route) =>
+      route.fulfill({ contentType: "text/html", body: "<html><body>gallery stub</body></html>" }),
+    );
+
+    await page.goto("/create");
+    await page.getByRole("banner").getByRole("link", { name: "Gallery" }).click();
+
+    // Nothing to lose, so `onNavigate` returns early and the dialog never opens.
+    await expect(page).toHaveURL(/\/gallery/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("leave guard", () => {
+  test("warns before leaving the editor with a generated grid", async ({ page }) => {
+    await uploadAndGenerate(page);
+
+    await page.getByRole("banner").getByRole("link", { name: "Gallery" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Leave the editor?")).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Stay" }).click();
+
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/create$/);
+    // Staying means the work is still there — the point of the guard.
+    await expect(page.getByTestId("pixel-art-canvas")).toBeVisible();
+    await expect(page.getByText("2 × 2 blocks")).toBeVisible();
+  });
+
+  test("guards the logo link as well as the nav links", async ({ page }) => {
+    await uploadAndGenerate(page);
+
+    await page.getByRole("banner").getByRole("link", { name: "Home" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Leave the editor?")).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Stay" }).click();
+    await expect(page).toHaveURL(/\/create$/);
+  });
+});
+
 test.describe("layout and theme", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

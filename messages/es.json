@@ -65,7 +65,16 @@
     "newCreationConfirmBody": "Los cambios no guardados se perderán.",
     "newCreationConfirmBodyEdit": "Estás editando \"{title}\". Los cambios no guardados se perderán.",
     "newCreationConfirmContinue": "Continuar",
-    "newCreationConfirmCancel": "Volver"
+    "newCreationConfirmCancel": "Volver",
+    "navHome": "Inicio",
+    "navGallery": "Galería",
+    "navMyCreations": "Mis Creaciones",
+    "navSignIn": "Iniciar sesión",
+    "leaveConfirmTitle": "¿Salir del editor?",
+    "leaveConfirmBody": "Tu trabajo se guarda como borrador y se restaura la próxima vez que abras el editor.",
+    "leaveConfirmBodyEdit": "Estás editando \"{title}\". Los cambios no guardados se perderán.",
+    "leaveConfirmContinue": "Salir",
+    "leaveConfirmCancel": "Quedarme"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensiones (bloques)",
@@ -144,6 +153,7 @@
   "UserMenu": {
     "myProfile": "Mi Perfil",
     "myCreations": "Mis Creaciones",
+    "explore": "Explorar",
     "setNickname": "Establecer apodo",
     "signOut": "Cerrar sesión"
   },

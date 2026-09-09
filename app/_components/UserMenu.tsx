@@ -157,6 +157,17 @@ export default function UserMenu({ variant }: Props) {
           {t("myCreations")}
         </DropdownMenuItem>
 
+        <DropdownMenuItem
+          className="cursor-pointer text-gray-700 hover:bg-gray-100 dark:text-zinc-200 dark:hover:bg-gray-800"
+          onClick={() => router.push("/gallery")}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          {t("explore")}
+        </DropdownMenuItem>
+
         {!nickname && (
           <DropdownMenuItem
             className="cursor-pointer text-grass hover:bg-grass/10 dark:text-grass dark:hover:bg-grass/20"

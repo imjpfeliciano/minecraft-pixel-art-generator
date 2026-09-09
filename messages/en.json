@@ -65,7 +65,16 @@
     "newCreationConfirmBody": "Any unsaved changes will be lost.",
     "newCreationConfirmBodyEdit": "You're editing \"{title}\". Any unsaved changes will be lost.",
     "newCreationConfirmContinue": "Continue",
-    "newCreationConfirmCancel": "Go back"
+    "newCreationConfirmCancel": "Go back",
+    "navHome": "Home",
+    "navGallery": "Gallery",
+    "navMyCreations": "My Creations",
+    "navSignIn": "Sign in",
+    "leaveConfirmTitle": "Leave the editor?",
+    "leaveConfirmBody": "Your work is kept as a draft and restored the next time you open the editor.",
+    "leaveConfirmBodyEdit": "You're editing \"{title}\". Any unsaved changes will be lost.",
+    "leaveConfirmContinue": "Leave",
+    "leaveConfirmCancel": "Stay"
   },
   "ControlPanel": {
     "dimensionsHeading": "Dimensions (blocks)",
@@ -144,6 +153,7 @@
   "UserMenu": {
     "myProfile": "My Profile",
     "myCreations": "My Creations",
+    "explore": "Explore",
     "setNickname": "Set nickname",
     "signOut": "Sign out"
   },

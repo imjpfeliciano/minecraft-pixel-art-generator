@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useUser } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import { useSearchParams, useRouter } from "next/navigation";
 import { track } from "@vercel/analytics";
 import ImageUpload from "../_components/ImageUpload";
@@ -14,6 +14,7 @@ import BlockLegend from "../_components/BlockLegend";
 import ThemeToggle from "../_components/ThemeToggle";
 import LocaleSwitcher from "../_components/LocaleSwitcher";
 import UserMenu from "../_components/UserMenu";
+import NewBadge from "../_components/NewBadge";
 import {
   Dialog,
   DialogContent,
@@ -189,7 +190,16 @@ function CreatePageInner() {
   >([]);
   const MAX_UNDO = 20;
 
-  const persistGuestDraft = useCallback(() => {
+  // True whenever the editor holds work that is not persisted anywhere. Drives the
+  // leave-guard on the header links; see `pendingHref` below.
+  const [hasUnsavedWork, setHasUnsavedWork] = useState(false);
+  // Href a header link tried to navigate to while `hasUnsavedWork` — null when the
+  // confirmation dialog is closed.
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // `openSaveModal` defaults to true so the Save flow keeps its behaviour; the
+  // header's sign-in and leave-guard park the work without reopening the modal.
+  const persistGuestDraft = useCallback((options?: { openSaveModal?: boolean }) => {
     if (blockGrid.length === 0) return;
     void saveCreateDraft({
       blockGrid,
@@ -201,6 +211,7 @@ function CreatePageInner() {
       foundationEnabled,
       foundationBlockId,
       selectedCategories: Array.from(selectedCategories),
+      openSaveModal: options?.openSaveModal ?? true,
     });
   }, [
     blockGrid,
@@ -238,6 +249,8 @@ function CreatePageInner() {
           setSelectedCategories(new Set(creation.blockCategories));
         }
         setVisibility(creation.visibility);
+        // Freshly loaded from the server — nothing edited yet, nothing to lose.
+        setHasUnsavedWork(false);
         // Regenerate the litematic from the loaded grid
         setLastLitematic(
           generateLitematic(
@@ -282,6 +295,8 @@ function CreatePageInner() {
       );
       setUndoStack([]);
       setRestoredGuestDraft(draft.openSaveModal);
+      // `clearCreateDraft` runs next, so this work is no longer persisted anywhere.
+      setHasUnsavedWork(true);
       void clearCreateDraft();
     });
     return () => {
@@ -313,6 +328,8 @@ function CreatePageInner() {
     setLastLitematic(null);
     setUndoStack([]);
     setError(null);
+    // The grid is gone — there is nothing left for the leave-guard to protect.
+    setHasUnsavedWork(false);
   }, []);
 
   const handleImageSelected = useCallback(
@@ -342,6 +359,9 @@ function CreatePageInner() {
 
   const pushUndo = useCallback(
     (currentGrid: MinecraftBlock[][], currentLitematic: Uint8Array | null) => {
+      // Every block edit funnels through here, so it is the one place that has to
+      // mark the editor dirty.
+      setHasUnsavedWork(true);
       setUndoStack((prev) => {
         const snapshot = {
           grid: currentGrid.map((row) => row.map((cell) => ({ ...cell }))),
@@ -466,6 +486,7 @@ function CreatePageInner() {
       const grid = mapPixelsToBlocks(pixels, width, height, allowedBlocks, fillBlock);
       setBlockGrid(grid);
       setUndoStack([]);
+      setHasUnsavedWork(true);
 
       const effectiveFoundation = orientation === "horizontal" && foundationEnabled;
       const litematic = generateLitematic(
@@ -502,6 +523,43 @@ function CreatePageInner() {
       orientation,
     });
   }, [lastLitematic, schematicName, width, height, orientation]);
+
+  // ── Leave guard ─────────────────────────────────────────────────────────────
+  //
+  // `onNavigate` is the App Router's interception point for client-side navigation
+  // (`beforeunload` never fires for it). It deliberately does not run for
+  // Ctrl/Cmd-click or external URLs, which is the behaviour we want.
+
+  const guardNavigation = useCallback(
+    (href: string) => (event: { preventDefault: () => void }) => {
+      if (!hasUnsavedWork) return;
+      event.preventDefault();
+      setPendingHref(href);
+    },
+    [hasUnsavedWork],
+  );
+
+  const handleConfirmLeave = useCallback(() => {
+    if (!pendingHref) return;
+    // An edit to a loaded creation cannot be parked as a draft: CreateDraftPayload
+    // carries no creation id, so restoring it would later save a duplicate instead
+    // of patching the original. Only a fresh, never-saved grid is kept.
+    if (!loadedCreation) persistGuestDraft({ openSaveModal: false });
+    setHasUnsavedWork(false);
+    setPendingHref(null);
+    router.push(pendingHref);
+  }, [pendingHref, loadedCreation, persistGuestDraft, router]);
+
+  // Covers tab-close and external navigation, which `onNavigate` cannot see.
+  // Browsers ignore any custom text and show their own string.
+  useEffect(() => {
+    if (!hasUnsavedWork) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedWork]);
 
   // ── Step tracker state ──────────────────────────────────────────────────────
   const steps: Step[] = [
@@ -541,22 +599,41 @@ function CreatePageInner() {
     <div className="h-screen overflow-hidden bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 flex flex-col">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-100 dark:border-zinc-800 px-6 py-4 flex items-center gap-3 flex-shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-grass flex items-center justify-center flex-shrink-0">
+        {/* Only the mark links home — the <h1> stays a bare heading. */}
+        <Link
+          href="/"
+          aria-label={t("navHome")}
+          onNavigate={guardNavigation("/")}
+          className="w-8 h-8 rounded-lg bg-grass flex items-center justify-center flex-shrink-0 transition-colors hover:bg-grass-hover"
+        >
           <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v10H7V7zm2 2v6h6V9H9z" />
           </svg>
-        </div>
+        </Link>
         <div>
           <h1 className="text-base font-bold leading-none">{t("title")}</h1>
           <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{t("tagline")}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/gallery"
+            onNavigate={guardNavigation("/gallery")}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            {t("navGallery")}
+            <NewBadge />
+          </Link>
           <LocaleSwitcher />
           <ThemeToggle />
           {isSignedIn && (
             <>
               <Link
                 href="/dashboard"
+                onNavigate={guardNavigation("/dashboard")}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -565,10 +642,25 @@ function CreatePageInner() {
                   <rect x="3" y="14" width="7" height="7" rx="1" />
                   <rect x="14" y="14" width="7" height="7" rx="1" />
                 </svg>
-                My Creations
+                {t("navMyCreations")}
               </Link>
               <UserMenu variant="nav" />
             </>
+          )}
+          {/* No leave-guard: Clerk returns to /create and the draft is restored. */}
+          {isAuthLoaded && !isSignedIn && (
+            <SignInButton
+              mode="modal"
+              forceRedirectUrl="/create"
+              signUpForceRedirectUrl="/create"
+            >
+              <button
+                onClick={() => persistGuestDraft({ openSaveModal: false })}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
+              >
+                {t("navSignIn")}
+              </button>
+            </SignInButton>
           )}
         </div>
       </header>
@@ -1001,6 +1093,7 @@ function CreatePageInner() {
           }}
           existingCreation={loadedCreation ?? undefined}
           onBeforeSignIn={persistGuestDraft}
+          onSaved={() => setHasUnsavedWork(false)}
         />
       )}
 
@@ -1030,6 +1123,37 @@ function CreatePageInner() {
               className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
             >
               {t("newCreationConfirmContinue")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Leave-the-editor confirmation dialog ──────────────────────── */}
+      <Dialog
+        open={pendingHref !== null}
+        onOpenChange={(open) => { if (!open) setPendingHref(null); }}
+      >
+        <DialogContent className="max-w-sm bg-white dark:bg-zinc-900">
+          <DialogHeader>
+            <DialogTitle>{t("leaveConfirmTitle")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-zinc-400">
+            {loadedCreation
+              ? t("leaveConfirmBodyEdit", { title: loadedCreation.title })
+              : t("leaveConfirmBody")}
+          </p>
+          <DialogFooter className="gap-2">
+            <button
+              onClick={() => setPendingHref(null)}
+              className="px-4 py-2 text-sm rounded-md border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t("leaveConfirmCancel")}
+            </button>
+            <button
+              onClick={handleConfirmLeave}
+              className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              {t("leaveConfirmContinue")}
             </button>
           </DialogFooter>
         </DialogContent>
