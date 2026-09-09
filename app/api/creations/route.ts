@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, withApi, ApiError } from "@/app/_lib/server/auth";
 import { hydrateCreations } from "@/app/_lib/server/author-nicknames";
+import { revalidatePublicCreations } from "@/app/_lib/server/public-creations";
 import {
   validateTitle,
   validateDescription,
@@ -220,6 +221,9 @@ export const POST = withApi(async (req: Request) => {
     db.collection("creations").doc(creationId).set(creation),
     db.collection("users").doc(user.userId).update(userCountUpdate),
   ]);
+
+  // A new public creation changes the gallery listing.
+  if (visibility === "public") revalidatePublicCreations();
 
   return Response.json({ id: creationId }, { status: 201 });
 });

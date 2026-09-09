@@ -3,10 +3,7 @@ import type { Metadata } from "next";
 import NavBar from "../_components/NavBar";
 import Footer from "../_components/landing/Footer";
 import GalleryContent from "./GalleryContent";
-import { getDb } from "../_lib/server/firebase-admin";
-import { type Creation } from "../_lib/creation";
-import { hydrateCreations } from "../_lib/server/author-nicknames";
-import type { CreationJson } from "../_lib/creation";
+import { getPublicCreations } from "../_lib/server/public-creations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
 const PAGE_SIZE = 24;
@@ -25,41 +22,6 @@ export const metadata: Metadata = {
   },
 };
 
-async function fetchPublicCreations(
-  tag: string | null,
-): Promise<{ creations: CreationJson[]; nextCursor: string | null }> {
-  const db = getDb();
-
-  try {
-    let q = db
-      .collection("creations")
-      .where("visibility", "==", "public") as FirebaseFirestore.Query;
-
-    if (tag) {
-      q = q.where("tags", "array-contains", tag);
-    }
-
-    q = q.orderBy("publishedAt", "desc").limit(PAGE_SIZE + 1);
-
-    const snap = await q.get();
-    const hasMore = snap.docs.length > PAGE_SIZE;
-    const resultDocs = hasMore ? snap.docs.slice(0, PAGE_SIZE) : snap.docs;
-    const creations = await hydrateCreations(
-      resultDocs.map((d) => ({ id: d.id, ...d.data() }) as Creation),
-    );
-    const nextCursor = hasMore ? creations[creations.length - 1].publishedAt : null;
-    return { creations, nextCursor };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg.includes("index") || msg.includes("FAILED_PRECONDITION")) {
-      console.warn("[gallery] Missing Firestore composite index:", msg);
-    } else {
-      console.error("[gallery] fetchPublicCreations error:", err);
-    }
-    return { creations: [], nextCursor: null };
-  }
-}
-
 interface GalleryPageProps {
   searchParams: Promise<{ tag?: string }>;
 }
@@ -68,7 +30,7 @@ export default async function GalleryPage({ searchParams }: GalleryPageProps) {
   const { tag } = await searchParams;
   const activeTag = tag && tag.length > 0 ? tag : null;
 
-  const { creations, nextCursor } = await fetchPublicCreations(activeTag);
+  const { creations, nextCursor } = await getPublicCreations(activeTag, PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">

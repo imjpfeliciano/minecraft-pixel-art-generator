@@ -2,6 +2,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "@/app/_lib/server/firebase-admin";
 import { requireUser, withApi, parseJsonBody, ApiError } from "@/app/_lib/server/auth";
 import { claimNickname, NicknameTakenError } from "@/app/_lib/server/nicknames";
+import { revalidatePublicCreations } from "@/app/_lib/server/public-creations";
 import {
   validateBio,
   validateDisplayName,
@@ -44,6 +45,10 @@ export const PATCH = withApi(async (req) => {
       await claimNickname(user.userId, desired);
       // claimNickname already updates /users/{userId}.nickname in a transaction,
       // so we don't add it to `updates` — just flush the rest of the fields.
+      //
+      // The author handle is resolved into the cached listing payload (#22),
+      // so a rename has to drop it or cards show the old handle until the TTL.
+      revalidatePublicCreations();
     } catch (err) {
       if (err instanceof NicknameTakenError) {
         throw new ApiError(409, "nickname_taken", err.message);
