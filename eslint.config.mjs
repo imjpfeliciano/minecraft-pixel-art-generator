@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "blob-report/**",
+    // `/fix-issue` agent worktrees — full second checkouts of the repo, linted
+    // on their own branch, never from here.
+    ".claude/worktrees/**",
   ]),
 ]);
 

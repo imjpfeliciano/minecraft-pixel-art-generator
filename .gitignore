@@ -50,3 +50,5 @@ scripts/generated-blocks.json
 
 # claude code — local permission overrides only; skills and pm state are tracked
 .claude/settings.local.json
+# `/fix-issue` agent worktrees — isolated checkouts, tracked by their own branch
+.claude/worktrees/
