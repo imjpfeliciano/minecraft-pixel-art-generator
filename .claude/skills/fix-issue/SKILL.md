@@ -1,6 +1,6 @@
 ---
 name: fix-issue
-description: Take a GitHub issue number, implement the fix in an isolated worktree, and open a draft PR. Use when asked to work on, fix, or implement an issue by number.
+description: Take a GitHub issue number, implement the fix in an isolated worktree, and open a PR. Use when asked to work on, fix, or implement an issue by number.
 allowed-tools: Read, Glob, Grep, Agent(issue-implementer), Bash(gh issue*), Bash(gh pr*), Bash(gh project*), Bash(git status*), Bash(git log*), Bash(git fetch*), Bash(git branch*)
 disable-model-invocation: true
 user-invocable: true
@@ -102,8 +102,8 @@ automatically; the same prompt will usually fail the same way.
 
 ## Boundaries
 
-- **Never merge the PR.** It opens as a draft and stays that way until a human says
-  otherwise.
+- **Never merge the PR.** It opens ready for review, not as a draft — but "ready for
+  review" means ready for a human to review it, never a licence to merge it.
 - **Never push to `main`.**
 - **Never mark the issue completed in `plans/`.** That happens through `pnpm pm:sync` after
   the PR merges and the issue actually closes.

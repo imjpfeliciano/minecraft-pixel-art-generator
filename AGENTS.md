@@ -225,7 +225,7 @@ Every todo needs a stable kebab-case `id`. **Ids are immutable** — sync cannot
 | `/plan-groom` | Backlog triage — stale, blocked, untriaged, drift. |
 | `/plan-dashboard` | Publish the shareable dashboard Artifact. |
 | `/plan-issue <n>` | Research an issue and post an implementation plan for your review. |
-| `/fix-issue <n>` | Implement an issue in an isolated worktree and open a draft PR. |
+| `/fix-issue <n>` | Implement an issue in an isolated worktree and open a PR. |
 
 Underlying scripts (`scripts/pm/`) do the deterministic work and can be run directly:
 
@@ -376,7 +376,7 @@ Skip the plan step for genuinely self-contained issues; a one-line fix needs a p
 
 ### Agent dispatch
 
-`/fix-issue <n>` implements an issue in an isolated git worktree (your checkout is untouched), runs the gates, and opens a **draft** PR with `Closes #N`. The contract lives in `.claude/agents/issue-implementer.md`.
+`/fix-issue <n>` implements an issue in an isolated git worktree (your checkout is untouched), runs the gates, and opens a PR with `Closes #N` — ready for review, not a draft. The contract lives in `.claude/agents/issue-implementer.md`.
 
 | Label | Meaning |
 |---|---|

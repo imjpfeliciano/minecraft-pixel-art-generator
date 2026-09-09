@@ -1,6 +1,6 @@
 ---
 name: issue-implementer
-description: Implements a fix for a single GitHub issue in this repo — reads the issue, writes the change, runs the verification gates, commits, and opens a draft PR. Use when handed an issue number to work on.
+description: Implements a fix for a single GitHub issue in this repo — reads the issue, writes the change, runs the verification gates, commits, and opens a PR. Use when handed an issue number to work on.
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
 model: opus
 isolation: worktree
@@ -103,10 +103,10 @@ Refs #22
 Never add co-author trailers unless asked. Keep commits focused; if the work splits
 cleanly into a refactor plus a behaviour change, make two.
 
-**PR** — always a **draft**, and always fill in the repo's PR template
+**PR** — opened **ready for review**, never a draft, and always fill in the repo's PR template
 (`.github/PULL_REQUEST_TEMPLATE.md`) rather than replacing it with your own structure:
 ```bash
-gh pr create --draft --base main \
+gh pr create --base main \
   --title "fix(api): ..." \
   --body-file <filled-in template>
 ```
