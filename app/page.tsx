@@ -4,9 +4,7 @@ import HowItWorksSection from "./_components/landing/HowItWorksSection";
 import CatalogueSection from "./_components/landing/CatalogueSection";
 import TagsSection from "./_components/landing/TagsSection";
 import Footer from "./_components/landing/Footer";
-import { getDb } from "./_lib/server/firebase-admin";
-import { type Creation } from "./_lib/creation";
-import { hydrateCreations } from "./_lib/server/author-nicknames";
+import { getPublicCreations } from "./_lib/server/public-creations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
 
@@ -22,31 +20,13 @@ const jsonLd = {
   url: SITE_URL,
 };
 
-async function fetchRecentPublicCreations() {
-  try {
-    const db = getDb();
-    const snap = await db
-      .collection("creations")
-      .where("visibility", "==", "public")
-      .orderBy("publishedAt", "desc")
-      .limit(6)
-      .get();
-    // Awaited inside the try: returning the promise unawaited would let a
-    // lookup failure escape the catch below and take the landing page with it.
-    return await hydrateCreations(
-      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Creation),
-    );
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "";
-    if (!msg.includes("index") && !msg.includes("FAILED_PRECONDITION")) {
-      console.error("[landing] fetchRecentPublicCreations error:", err);
-    }
-    return [];
-  }
-}
+const RECENT_CREATION_COUNT = 6;
 
 export default async function LandingPage() {
-  const recentCreations = await fetchRecentPublicCreations();
+  const { creations: recentCreations } = await getPublicCreations(
+    null,
+    RECENT_CREATION_COUNT,
+  );
 
   return (
     <>

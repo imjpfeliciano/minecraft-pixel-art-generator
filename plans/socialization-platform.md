@@ -702,7 +702,11 @@ Shared helpers in `app/_lib/server/`:
 
 No handler ever reads `auth().userId` directly outside `resolveUser()`. That single choke point is what keeps Clerk ids from leaking back into domain data, and it is worth an ESLint `no-restricted-syntax` rule to enforce.
 
-Route Handlers are uncached by default in Next 16, which is what these need. The gallery's read path is a server component instead, so it can use `use cache` in a later optimization pass without touching the API.
+Route Handlers are uncached by default in Next 16, which is what these need. The landing and gallery read paths are server components instead, and both now go through `getPublicCreations()` (`app/_lib/server/public-creations.ts`), cached with `unstable_cache` under the `creations:public` tag with a 300s backstop (#48).
+
+`use cache` was **not** used, and full-page caching is not available at all. `app/layout.tsx` reads the `theme-preference` cookie, and a Request-time API in a layout opts every route into dynamic rendering — so `export const revalidate` cannot apply, and `force-static` would make `cookies()` return empty values and serve everyone the light theme. Caching the data function sidesteps this because it is independent of the route's rendering mode. `use cache` itself requires the app-wide `cacheComponents` flag, which also turns on Partial Prerendering and `<Activity>` navigation; that migration is tracked in #50 rather than bundled into a caching change.
+
+Correctness comes from `revalidatePublicCreations()` on write — new public creation, visibility change, delete of a public creation, and **nickname change**, since the author handle is resolved into the cached payload. The TTL is only a backstop for a missed invalidation.
 
 ---
 

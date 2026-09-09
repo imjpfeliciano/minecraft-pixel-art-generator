@@ -5,6 +5,7 @@ import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, ApiError } from "@/app/_lib/server/auth";
 import { resolveUser } from "@/app/_lib/server/identity";
 import { hydrateCreations } from "@/app/_lib/server/author-nicknames";
+import { revalidatePublicCreations } from "@/app/_lib/server/public-creations";
 import {
   validateTitle,
   validateDescription,
@@ -178,6 +179,8 @@ export async function PATCH(
         : Promise.resolve(),
     ]);
 
+    if (wasPublic || isNowPublic) revalidatePublicCreations();
+
     return Response.json({ ok: true });
   });
 }
@@ -215,6 +218,8 @@ export async function DELETE(
       counterUpdates.publicCreationCount = FieldValue.increment(-1);
     }
     await db.collection("users").doc(user.userId).update(counterUpdates);
+
+    if (creation.visibility === "public") revalidatePublicCreations();
 
     return Response.json({ ok: true });
   });
