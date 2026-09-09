@@ -1,0 +1,54 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  # Supersede a PR's older run; never cancel on main, so every landed
+  # commit keeps its own verdict.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # NOTE: "gates" is a required status check on main. Renaming this job (or its
+  # `name:`) makes branch protection wait forever on a check that never reports,
+  # blocking every PR. Update the ruleset first if it ever has to change.
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install
+        id: install
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm typecheck
+
+      - name: test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm test
+
+      - name: i18n parity
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:i18n
+
+      - name: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:lint
