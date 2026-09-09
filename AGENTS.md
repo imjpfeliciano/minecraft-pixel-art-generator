@@ -251,6 +251,8 @@ pnpm check:lint            # eslint — zero errors, zero warnings (alias for `p
 
 `check:i18n` enforces the translation rules above mechanically. Values legitimately identical in both locales are allowlisted in `scripts/pm/check-i18n.mjs` — add to that list with a justification rather than letting the warning become background noise.
 
+These same four gates also run in CI — `.github/workflows/test.yml`, on every pull request (drafts included) and on every push to `main`. The job is named **`gates`** and is a required status check on `main`, so a red run blocks the merge button. That name is a public contract: renaming the job leaves branch protection waiting on a check that never reports, which blocks every PR until the ruleset is updated to match. Each gate step runs even if an earlier one failed, so one run reports all four verdicts rather than only the first. `pnpm test:e2e` is deliberately **not** in the workflow — it needs Clerk keys as repo secrets and a browser download, which is #29's job, not this one's.
+
 `check:lint` is now just an alias for `pnpm lint` (`eslint --max-warnings 0`). It used to be a per-file ratchet against `.claude/pm/lint-baseline.json`, because `main` carried 17 pre-existing eslint errors and a zero-error gate would have blocked every change. That backlog was cleared in #23, so the ratchet, its baseline and `scripts/pm/check-lint.mjs` are gone — a green tree needs a plain gate, not a high-water mark. **Warnings fail the gate too**, deliberately: the backlog started as warnings nobody had to look at.
 
 ### Tests
