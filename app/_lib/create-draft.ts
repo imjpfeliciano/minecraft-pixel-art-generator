@@ -31,6 +31,12 @@ export interface CreateDraftInput {
   foundationEnabled: boolean;
   foundationBlockId: string;
   selectedCategories: string[];
+  /**
+   * Whether restoring this draft should reopen the save modal. True for the Save
+   * flow (the user was mid-save when Clerk navigated away), false when the draft
+   * is only being parked — a header sign-in or a confirmed "leave the editor".
+   */
+  openSaveModal?: boolean;
 }
 
 function uint8ToB64(bytes: Uint8Array): string {
@@ -110,7 +116,7 @@ export async function saveCreateDraft(input: CreateDraftInput): Promise<void> {
     foundationEnabled: input.foundationEnabled,
     foundationBlockId: input.foundationBlockId,
     selectedCategories: input.selectedCategories,
-    openSaveModal: true,
+    openSaveModal: input.openSaveModal ?? true,
   };
 
   try {
