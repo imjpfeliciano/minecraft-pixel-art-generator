@@ -4,7 +4,8 @@ import NavBar from "../_components/NavBar";
 import Footer from "../_components/landing/Footer";
 import GalleryContent from "./GalleryContent";
 import { getDb } from "../_lib/server/firebase-admin";
-import { toCreationJson, type Creation } from "../_lib/creation";
+import { type Creation } from "../_lib/creation";
+import { hydrateCreations } from "../_lib/server/author-nicknames";
 import type { CreationJson } from "../_lib/creation";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mc-pixel.app";
@@ -43,8 +44,8 @@ async function fetchPublicCreations(
     const snap = await q.get();
     const hasMore = snap.docs.length > PAGE_SIZE;
     const resultDocs = hasMore ? snap.docs.slice(0, PAGE_SIZE) : snap.docs;
-    const creations = resultDocs.map((d) =>
-      toCreationJson({ id: d.id, ...d.data() } as Creation),
+    const creations = await hydrateCreations(
+      resultDocs.map((d) => ({ id: d.id, ...d.data() }) as Creation),
     );
     const nextCursor = hasMore ? creations[creations.length - 1].publishedAt : null;
     return { creations, nextCursor };

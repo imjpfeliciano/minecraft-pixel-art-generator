@@ -491,7 +491,7 @@ Note there is **no `clerkUserId` field** on the user doc. The link is one-direct
 | field | type | notes |
 | --- | --- | --- |
 | `authorId` | string | **internal `userId`** — never a Clerk id |
-| `authorNickname` | string | denormalized for card rendering; may go stale, see below |
+| ~~`authorNickname`~~ | — | **removed (#22).** Was denormalized at write time and went stale; resolved from `/users/{authorId}` at read time instead. Old documents may still carry the field; nothing reads it. |
 | `title` | string | 1–80 chars |
 | `titleLowercase` | string | reserved for phase-2 search |
 | `description` | string | max 500 chars |
@@ -723,7 +723,11 @@ That last point is a direct consequence of the multi-instance design and is easy
 
 Claiming runs in a Firestore transaction that creates `/nicknames/{new}`, deletes `/nicknames/{old}` if present, and updates the user doc, failing if the new name is taken. Validate against a reserved-word blocklist (`admin`, `api`, `create`, `gallery`, `dashboard`, `onboarding`, `u`, `creations`, `sign-in`, `sign-up`, `me`, `settings`) so a nickname can never shadow a route.
 
-Changing a nickname does **not** rewrite `authorNickname` on existing creations. The detail and profile pages resolve the author's current nickname from `authorId` at render time; `authorNickname` on the creation is a rendering hint for list views only, and may go stale until that creation's next write. The alternative is a fan-out update across every creation, which is not worth it at this scale — and because `authorId` is the internal id, links never break, only the displayed label lags.
+Changing a nickname requires no write to any creation. The handle is **not** stored on the creation document — every read path resolves it from `/users/{authorId}` through `hydrateCreations()` (`app/_lib/server/author-nicknames.ts`), so the displayed label and the `/u/{nickname}` link are always the live value.
+
+This replaced a denormalized `authorNickname` field that was stamped once at save time and never re-synced (#22). That field left creations published after a nickname was claimed showing no handle at all, and renamed users linking to a `/u/` route that 404s. The alternative fix — re-stamping on write plus a fan-out across every creation on rename — was rejected: it keeps reads marginally cheaper but its correctness depends on every current and future write path remembering to stamp, which is precisely the failure that caused the bug. Requiring the handle as an argument to `toCreationJson()` makes the compiler enforce it instead.
+
+The cost is one batched `getAll()` per list render — at most 6 extra document reads on the landing page and 24 on the gallery, deduped by author, and zero on the dashboard, `scope=mine` and `/u/[nickname]`, which already hold the nickname. Caching those two public read paths (#48) removes even that.
 
 ### Environment portability
 

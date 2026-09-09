@@ -4,12 +4,12 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb, getBucket } from "@/app/_lib/server/firebase-admin";
 import { requireUser, ApiError } from "@/app/_lib/server/auth";
 import { resolveUser } from "@/app/_lib/server/identity";
+import { hydrateCreations } from "@/app/_lib/server/author-nicknames";
 import {
   validateTitle,
   validateDescription,
   validateTags,
   validateVisibility,
-  toCreationJson,
   type Creation,
   type Orientation,
   type CreationFoundation,
@@ -47,7 +47,8 @@ export async function GET(
       throw new ApiError(403, "forbidden", "This creation is private.");
     }
 
-    return Response.json(toCreationJson(creation));
+    const [json] = await hydrateCreations([creation]);
+    return Response.json(json);
   });
 }
 
