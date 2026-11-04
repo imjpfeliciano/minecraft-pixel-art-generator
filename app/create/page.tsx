@@ -32,6 +32,7 @@ import { mapPixelsToBlocks } from "../_lib/color-matcher";
 import { loadAndResizeImage } from "../_lib/image-processor";
 import { downloadLitematic, generateLitematic, Orientation } from "../_lib/litematic-generator";
 import { decodeGrid } from "../_lib/creation-grid";
+import { titleFromImageName } from "../_lib/schematic-name";
 import {
   clearCreateDraft,
   decodeCreateDraftGrid,
@@ -200,8 +201,8 @@ function CreatePageInner() {
   // `openSaveModal` defaults to true so the Save flow keeps its behaviour; the
   // header's sign-in and leave-guard park the work without reopening the modal.
   const persistGuestDraft = useCallback((options?: { openSaveModal?: boolean }) => {
-    if (blockGrid.length === 0) return;
-    void saveCreateDraft({
+    if (blockGrid.length === 0) return Promise.resolve();
+    return saveCreateDraft({
       blockGrid,
       width,
       height,
@@ -224,6 +225,13 @@ function CreatePageInner() {
     foundationBlockId,
     selectedCategories,
   ]);
+
+  function openSave() {
+    if (!isSignedIn && !loadedCreation) {
+      void persistGuestDraft();
+    }
+    setShowSaveModal(true);
+  }
 
   // Hydrate editor from ?creation=<id>
   useEffect(() => {
@@ -324,6 +332,7 @@ function CreatePageInner() {
     imagePreviewUrlRef.current = url;
     setImageFile(file);
     setImagePreviewUrl(url);
+    setSchematicName(titleFromImageName(file.name));
     setBlockGrid([]);
     setLastLitematic(null);
     setUndoStack([]);
@@ -647,7 +656,8 @@ function CreatePageInner() {
               <UserMenu variant="nav" />
             </>
           )}
-          {/* No leave-guard: Clerk returns to /create and the draft is restored. */}
+          {/* Draft is parked first, then the tab-close guard is lifted so Google
+              sign-in does not show a false "changes may not be saved" warning. */}
           {isAuthLoaded && !isSignedIn && (
             <SignInButton
               mode="modal"
@@ -655,7 +665,11 @@ function CreatePageInner() {
               signUpForceRedirectUrl="/create"
             >
               <button
-                onClick={() => persistGuestDraft({ openSaveModal: false })}
+                onClick={() => {
+                  void persistGuestDraft({ openSaveModal: false }).then(() => {
+                    setHasUnsavedWork(false);
+                  });
+                }}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-800 dark:hover:text-gray-100"
               >
                 {t("navSignIn")}
@@ -968,6 +982,13 @@ function CreatePageInner() {
                     </svg>
                     {t("downloadButton")}
                   </button>
+                  <button
+                    type="button"
+                    onClick={openSave}
+                    className="text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-grass dark:hover:text-grass transition-colors"
+                  >
+                    {t("shareLinkButton")}
+                  </button>
                   <div className="text-xs text-gray-400 dark:text-zinc-500">
                     <p>{t("importVia")} <span className="text-gray-700 dark:text-zinc-300 font-medium">{t("importLitematicaMod")}</span></p>
                     <p>{t("importInstructions")}</p>
@@ -1014,12 +1035,8 @@ function CreatePageInner() {
 
                   {/* Save button */}
                   <button
-                    onClick={() => {
-                      if (!isSignedIn && !loadedCreation) {
-                        void persistGuestDraft();
-                      }
-                      setShowSaveModal(true);
-                    }}
+                    type="button"
+                    onClick={openSave}
                     className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-zinc-700 px-5 py-3 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:border-grass hover:text-grass dark:hover:border-grass dark:hover:text-grass transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1092,7 +1109,9 @@ function CreatePageInner() {
             selectedCategories,
           }}
           existingCreation={loadedCreation ?? undefined}
-          onBeforeSignIn={persistGuestDraft}
+          onBeforeSignIn={() => {
+            void persistGuestDraft().then(() => setHasUnsavedWork(false));
+          }}
           onSaved={() => setHasUnsavedWork(false)}
         />
       )}

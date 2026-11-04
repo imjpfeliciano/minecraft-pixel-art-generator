@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { SignInButton } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
@@ -15,12 +14,14 @@ import {
 } from "@/app/_components/ui/dialog";
 import { encodeGrid } from "@/app/_lib/creation-grid";
 import { generateThumbnail } from "@/app/_lib/thumbnail";
+import { copyCreationLink, creationShareUrl } from "@/app/_lib/creation-share";
 import {
   trackCreationSaveOpened,
   trackCreationSaved,
   trackCreationSaveFailed,
   trackCreationPublishBlocked,
   trackCreationSignInPrompted,
+  trackCreationVisibilityToggled,
 } from "@/app/_lib/social-analytics";
 import type { MinecraftBlock } from "@/app/_lib/blocks";
 import type { CreationJson, Orientation, Visibility } from "@/app/_lib/creation";
@@ -69,7 +70,6 @@ export default function SaveCreationModal({
   onBeforeSignIn,
 }: SaveCreationModalProps) {
   const t = useTranslations("SaveModal");
-  const router = useRouter();
   const { isSignedIn } = useUser();
 
   const isEditMode = !!existingCreation;
@@ -82,6 +82,8 @@ export default function SaveCreationModal({
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [needsNickname, setNeedsNickname] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (open && isSignedIn === false) trackCreationSignInPrompted();
@@ -110,6 +112,8 @@ export default function SaveCreationModal({
       setSavedId(null);
       setNeedsNickname(false);
       setIsSubmitting(false);
+      setIsPublishing(false);
+      setLinkCopied(false);
     }
   }
 
@@ -217,12 +221,70 @@ export default function SaveCreationModal({
   }
 
   function handleClose() {
-    if (savedId && !isEditMode) router.push("/dashboard");
     onClose();
+  }
+
+  async function handleCopyLink() {
+    if (!savedId) return;
+    setError(null);
+    try {
+      await copyCreationLink(savedId, "save_success");
+      setLinkCopied(true);
+    } catch {
+      setError(t("copyFailed"));
+    }
+  }
+
+  async function handlePublishAndCopy() {
+    if (!savedId || isPublishing) return;
+    setError(null);
+    setNeedsNickname(false);
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/creations/${savedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: "public" }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.status === 409 && data?.error?.code === "nickname_required") {
+        setNeedsNickname(true);
+        trackCreationPublishBlocked();
+        return;
+      }
+      if (!res.ok) {
+        setError(data?.error?.message ?? t("errorGeneric"));
+        return;
+      }
+      setVisibility("public");
+      trackCreationVisibilityToggled("public");
+      try {
+        await copyCreationLink(savedId, "save_success");
+        setLinkCopied(true);
+      } catch {
+        setError(t("copyFailed"));
+      }
+    } catch {
+      setError(t("errorGeneric"));
+    } finally {
+      setIsPublishing(false);
+    }
   }
 
   const dialogTitle = isEditMode ? t("editTitle") : t("title");
   const saveLabel = isEditMode ? t("update") : t("save");
+  const isPublicResult = visibility === "public";
+  const successTitle = isPublicResult
+    ? t("publicSuccessTitle")
+    : isEditMode
+      ? t("updateSuccessTitle")
+      : t("successTitle");
+  const successBody = isPublicResult
+    ? t("publicSuccessBody")
+    : isEditMode
+      ? t("updateSuccessBody")
+      : t("successBody");
+  const shareUrl = savedId && isPublicResult ? creationShareUrl(savedId) : "";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
@@ -231,28 +293,75 @@ export default function SaveCreationModal({
         {savedId ? (
           <>
             <DialogHeader>
-              <DialogTitle>{isEditMode ? t("updateSuccessTitle") : t("successTitle")}</DialogTitle>
+              <DialogTitle>{successTitle}</DialogTitle>
             </DialogHeader>
-            <div className="flex flex-col items-center gap-4 py-4 text-center">
+            <div className="flex flex-col items-center gap-4 py-2 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                 <svg className="h-7 w-7 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">
-                {isEditMode ? t("updateSuccessBody") : t("successBody")}
+                {successBody}
               </p>
+              {isPublicResult && (
+                <input
+                  readOnly
+                  value={shareUrl}
+                  aria-label={t("shareUrlLabel")}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-left font-mono text-xs text-gray-700 dark:text-zinc-200"
+                />
+              )}
+              {needsNickname && (
+                <div className="w-full rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-left text-xs text-amber-700 dark:text-amber-300">
+                  {t("nicknameRequiredHint")}{" "}
+                  <Link href="/onboarding" className="underline font-medium">{t("nicknameSetLink")}</Link>
+                </div>
+              )}
+              {error && (
+                <div className="w-full rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-left text-xs text-red-700 dark:text-red-300">
+                  {error}
+                </div>
+              )}
+              {isPublicResult ? (
+                <div className="flex w-full flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors"
+                  >
+                    {linkCopied ? t("linkCopied") : t("copyLink")}
+                  </button>
+                  <Link
+                    href={`/creations/${savedId}`}
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    {t("viewPublicPage")}
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePublishAndCopy}
+                  disabled={isPublishing}
+                  className="w-full rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors disabled:opacity-50"
+                >
+                  {isPublishing ? t("publishing") : t("publishAndCopy")}
+                </button>
+              )}
             </div>
             <DialogFooter>
               {isEditMode ? (
                 <button
+                  type="button"
                   onClick={handleClose}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                 >
                   {t("close")}
                 </button>
               ) : (
-                <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg bg-grass px-4 py-2 text-sm font-semibold text-white hover:bg-grass-hover transition-colors">
+                <Link href="/dashboard" className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
                   {t("viewDashboard")}
                 </Link>
               )}
@@ -267,6 +376,9 @@ export default function SaveCreationModal({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <p className="text-sm text-gray-600 dark:text-zinc-400">{t("signInPrompt")}</p>
+              <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-left text-xs leading-relaxed text-gray-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                {t("signInDraftNote")}
+              </p>
               <SignInButton
                 mode="modal"
                 forceRedirectUrl="/create"

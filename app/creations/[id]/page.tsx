@@ -32,10 +32,13 @@ export async function generateMetadata({ params }: CreationDetailProps): Promise
   const creation = await getCreation(id);
 
   if (!creation || creation.visibility === "private") {
-    // Private creation — still return a noindex metadata (page.tsx handles 404 for non-owners)
+    // Private creation — still return a noindex metadata (page.tsx handles 404 for non-owners).
+    // Empty image lists stop the file-based share card from being attached.
     return {
       title: "Creation | mc-pixel",
       robots: { index: false, follow: false },
+      openGraph: { images: [] },
+      twitter: { images: [] },
     };
   }
 
@@ -43,6 +46,7 @@ export async function generateMetadata({ params }: CreationDetailProps): Promise
   const description = creation.description
     ? creation.description.slice(0, 160)
     : `Minecraft pixel art: ${creation.title} — ${creation.width}×${creation.height} blocks. Download the .litematic schematic.`;
+  const ogImage = `/creations/${id}/opengraph-image`;
 
   return {
     title,
@@ -53,9 +57,9 @@ export async function generateMetadata({ params }: CreationDetailProps): Promise
       url: `${SITE_URL}/creations/${id}`,
       images: [
         {
-          url: creation.previewImageUrl,
-          width: creation.width * 4,
-          height: creation.height * 4,
+          url: ogImage,
+          width: 1200,
+          height: 630,
           alt: `Minecraft pixel art: ${creation.title}`,
         },
       ],
@@ -64,7 +68,7 @@ export async function generateMetadata({ params }: CreationDetailProps): Promise
       card: "summary_large_image",
       title,
       description,
-      images: [creation.previewImageUrl],
+      images: [ogImage],
     },
   };
 }

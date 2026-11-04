@@ -45,6 +45,12 @@ export function trackCreationSignInPrompted() {
   track("Creation Sign In Prompted");
 }
 
+export type ShareSurface = "detail" | "save_success";
+
+export function trackCreationLinkCopied(surface: ShareSurface) {
+  track("Creation Link Copied", { surface });
+}
+
 // ─── Dashboard (DashboardGrid) ────────────────────────────────────────────────
 
 export function trackCreationVisibilityToggled(to: Visibility) {
