@@ -134,6 +134,7 @@ Module: `app/_lib/social-analytics.ts`
 | `Creation Save Failed` | `mode`, `reason: "validation" \| "server" \| "network"` | Validation error, non-OK API response, or uncaught exception |
 | `Creation Publish Blocked` | — | API returns 409 `nickname_required`; key funnel drop-off signal |
 | `Creation Sign In Prompted` | — | Modal opens while user is not signed in |
+| `Creation Link Copied` | `surface: "detail" \| "save_success"` | Copy link succeeds, or the native share sheet completes. Fired from `SaveCreationModal.tsx` (`save_success`) and `CreationMetaPanel.tsx` (`detail`). A dismissed share sheet is not counted. |
 
 ---
 

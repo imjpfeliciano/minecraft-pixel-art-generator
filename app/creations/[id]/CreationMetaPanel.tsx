@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import DownloadCreationButton from "./DownloadCreationButton";
+import { copyCreationLink, shareCreationNative } from "../../_lib/creation-share";
 import { AVAILABLE_TAGS } from "../../_lib/tags";
 import type { CreationJson } from "../../_lib/creation";
 
@@ -18,6 +20,40 @@ export default function CreationMetaPanel({
   publishedDate,
 }: CreationMetaPanelProps) {
   const t = useTranslations("CreationDetail");
+  const [canNativeShare, setCanNativeShare] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+
+  useEffect(() => {
+    // navigator.share is missing during SSR. Reading it while rendering would
+    // hydrate a different tree than the server sent.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only capability
+    setCanNativeShare(typeof navigator.share === "function");
+  }, []);
+
+  async function handleCopy() {
+    setCopyError(false);
+    try {
+      await copyCreationLink(creation.id, "detail");
+      setLinkCopied(true);
+    } catch {
+      setCopyError(true);
+    }
+  }
+
+  async function handleNativeShare() {
+    setCopyError(false);
+    try {
+      await shareCreationNative(
+        creation.id,
+        t("shareTitle", { title: creation.title }),
+        "detail",
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setCopyError(true);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -77,6 +113,30 @@ export default function CreationMetaPanel({
           </div>
         )}
       </div>
+
+      {creation.visibility === "public" && (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            {linkCopied ? t("linkCopied") : t("copyLink")}
+          </button>
+          {canNativeShare && (
+            <button
+              type="button"
+              onClick={handleNativeShare}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t("share")}
+            </button>
+          )}
+          {copyError && (
+            <p className="text-xs text-red-600 dark:text-red-400">{t("copyFailed")}</p>
+          )}
+        </div>
+      )}
 
       <DownloadCreationButton creation={creation} />
 
